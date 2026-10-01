@@ -4,8 +4,8 @@ import requests
 
 load_dotenv()
 
-open_meteo = os.getenv("OPEN_METEO_URL")
-geo_encoding = os.getenv("GEO_ENCODING_URL")
+open_meteo = os.getenv("OPEN_METEO_URL") or "https://api.open-meteo.com/v1/forecast"
+geo_encoding = os.getenv("GEO_ENCODING_URL") or "https://geocoding-api.open-meteo.com/v1/search"
 
 def get_coordinates(city: str = "tupã", country_code: str = "BR") -> dict:
 

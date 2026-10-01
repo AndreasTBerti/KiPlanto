@@ -1,14 +1,19 @@
-venv
+# Ambientes virtuais
+venv/
+.venv/
+
 # Arquivo de variáveis de ambiente
 .env
 
 # Configurações do editor
 .vscode/
+.idea/
 
 # Cache e arquivos compilados do Python
 __pycache__/
 *.pyc
 
-# Ambientes virtuais
-venv/
-.venv/
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.local/
