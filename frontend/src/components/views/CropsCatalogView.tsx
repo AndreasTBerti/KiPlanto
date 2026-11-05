@@ -1,14 +1,47 @@
-import React, { useState } from 'react';
-import { Search } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { AlertTriangle, CheckCircle2, Search, WifiOff } from 'lucide-react';
 import { CROP_DICTIONARY } from '../../types/api';
+import type { CropCategory } from '../../types/api';
+import { getSupportedCrops } from '../../services/api';
 
-type CategoryFilter = 'Todas' | 'Frutas' | 'Grãos' | 'Leguminosas' | 'Fibras' | 'Comercial';
+type CategoryFilter = 'Todas' | CropCategory;
 
 const CATEGORIES: CategoryFilter[] = ['Todas', 'Frutas', 'Grãos', 'Leguminosas', 'Fibras', 'Comercial'];
+
+type ModelCheck =
+  | { status: 'loading' }
+  | { status: 'ok'; crops: string[] }
+  | { status: 'error' };
 
 export const CropsCatalogView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('Todas');
+  const [modelCheck, setModelCheck] = useState<ModelCheck>({ status: 'loading' });
+
+  // O catálogo é um dicionário local; aqui ele é conferido com as classes que
+  // o modelo realmente conhece (GET /ai/crops), para acusar divergências se o
+  // modelo for retreinado com outras culturas.
+  useEffect(() => {
+    let active = true;
+    getSupportedCrops()
+      .then((response) => {
+        if (active) setModelCheck({ status: 'ok', crops: response.crops.map((c) => c.toLowerCase()) });
+      })
+      .catch(() => {
+        if (active) setModelCheck({ status: 'error' });
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const modelCrops = modelCheck.status === 'ok' ? new Set(modelCheck.crops) : null;
+  const missingInCatalog = modelCheck.status === 'ok'
+    ? modelCheck.crops.filter((crop) => !CROP_DICTIONARY[crop])
+    : [];
+  const missingInModel = modelCrops
+    ? Object.keys(CROP_DICTIONARY).filter((crop) => !modelCrops.has(crop))
+    : [];
 
   const cropEntries = Object.entries(CROP_DICTIONARY);
 
@@ -36,6 +69,7 @@ export const CropsCatalogView: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar cultura..."
+            aria-label="Buscar cultura"
             className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-hidden focus:border-emerald-500 transition-colors"
           />
         </div>
@@ -58,6 +92,46 @@ export const CropsCatalogView: React.FC = () => {
         </div>
       </div>
 
+      {/* Consistency with the model */}
+      {modelCheck.status === 'loading' && (
+        <p className="text-xs text-slate-400">Conferindo o catálogo com as culturas do modelo...</p>
+      )}
+
+      {modelCheck.status === 'error' && (
+        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 flex items-center gap-2">
+          <WifiOff className="w-4 h-4 shrink-0" />
+          <span>Não foi possível conferir com o modelo (API indisponível). Exibindo o catálogo local.</span>
+        </div>
+      )}
+
+      {modelCheck.status === 'ok' && missingInCatalog.length === 0 && missingInModel.length === 0 && (
+        <p className="text-xs text-emerald-400 flex items-center gap-1.5">
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>Catálogo confere com as {modelCheck.crops.length} culturas do modelo.</span>
+        </p>
+      )}
+
+      {(missingInCatalog.length > 0 || missingInModel.length > 0) && (
+        <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/40 text-amber-200 text-xs flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <span className="font-semibold block">Catálogo e modelo divergem</span>
+            {missingInCatalog.length > 0 && (
+              <p>
+                O modelo recomenda culturas sem descrição no catálogo:{' '}
+                <span className="font-mono">{missingInCatalog.join(', ')}</span>
+              </p>
+            )}
+            {missingInModel.length > 0 && (
+              <p>
+                Culturas do catálogo que o modelo não conhece:{' '}
+                <span className="font-mono">{missingInModel.join(', ')}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Crops Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredCrops.map(([key, info]) => (
@@ -74,10 +148,15 @@ export const CropsCatalogView: React.FC = () => {
                   {key}
                 </span>
               </div>
-              <div className="mt-1">
+              <div className="mt-1 flex flex-wrap gap-1.5">
                 <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-500/20">
                   {info.category}
                 </span>
+                {modelCrops && !modelCrops.has(key) && (
+                  <span className="text-[11px] px-2 py-0.5 rounded bg-amber-950/40 text-amber-300 border border-amber-500/30">
+                    fora do modelo
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-300 mt-2 leading-relaxed">
                 {info.description}

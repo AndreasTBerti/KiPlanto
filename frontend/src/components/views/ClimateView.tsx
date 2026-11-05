@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Search,
   Thermometer,
   Droplets,
   CloudRain,
@@ -8,62 +7,89 @@ import {
   Compass,
   MapPin,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Cpu
 } from 'lucide-react';
 import type { ClimateData } from '../../types/api';
 import { getCityClimate } from '../../services/api';
+import type { CityCoordinates } from '../../services/api';
+import { CityPicker } from '../CityPicker';
+
+const DEFAULT_CITY = 'Tupã';
+const DEFAULT_UF = 'SP';
 
 export const ClimateView: React.FC = () => {
-  const [cityInput, setCityInput] = useState('Tupã');
-  const [loading, setLoading] = useState(false);
+  const [cityInput, setCityInput] = useState(DEFAULT_CITY);
+  const [ufInput, setUfInput] = useState(DEFAULT_UF);
+  // Começa carregando: a busca inicial é disparada pelo efeito abaixo.
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<{
-    coordinates: Record<string, unknown>;
+    coordinates: CityCoordinates;
     climate: ClimateData;
   } | null>(null);
 
-  const fetchClimate = async (cityName: string) => {
-    if (!cityName.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await getCityClimate(cityName.trim());
-      setData(response);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Falha ao obter dados climáticos.';
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Só a resposta da busca mais recente é aplicada (evita resultado antigo
+  // sobrescrevendo o novo e a dupla execução do StrictMode em dev).
+  const latestRequest = useRef(0);
+
+  // Todo setState fica nos callbacks da promise, nunca no corpo da função:
+  // assim ela pode ser chamada dentro de um efeito sem render em cascata
+  // (regra react/set-state-in-effect).
+  const loadClimate = useCallback((cityName: string, uf: string) => {
+    const requestId = ++latestRequest.current;
+    const isLatest = () => requestId === latestRequest.current;
+    getCityClimate(cityName, uf || undefined)
+      .then((response) => {
+        if (!isLatest()) return;
+        setData(response);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (isLatest()) setError(err instanceof Error ? err.message : 'Falha ao obter dados climáticos.');
+      })
+      .finally(() => {
+        if (isLatest()) setLoading(false);
+      });
+  }, []);
 
   useEffect(() => {
-    fetchClimate('Tupã');
-  }, []);
+    loadClimate(DEFAULT_CITY, DEFAULT_UF);
+  }, [loadClimate]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchClimate(cityInput);
+    if (!cityInput) return;
+    setLoading(true);
+    setError(null);
+    loadClimate(cityInput, ufInput);
   };
+
+  const climate = data?.climate;
+  const coordinates = data?.coordinates;
+  const placeName = coordinates?.city || climate?.city || cityInput;
+  const placeState = coordinates?.state
+    ? `${coordinates.state}${coordinates.uf ? ` (${coordinates.uf})` : ''}`
+    : '';
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Search Input */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
         <form onSubmit={handleSearch} className="flex gap-3">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={cityInput}
-              onChange={(e) => setCityInput(e.target.value)}
-              placeholder="Nome do município..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-hidden focus:border-amber-500 transition-colors"
-            />
-          </div>
+          <CityPicker
+            city={cityInput}
+            uf={ufInput}
+            onChange={(nextCity, nextUf) => {
+              setCityInput(nextCity);
+              setUfInput(nextUf);
+            }}
+            accent="amber"
+            className="flex-1 min-w-0"
+          />
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !cityInput}
             className="bg-amber-600 hover:bg-amber-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors flex items-center space-x-2 disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
@@ -85,7 +111,7 @@ export const ClimateView: React.FC = () => {
         </div>
       )}
 
-      {data && data.climate && (
+      {climate && (
         <div className="space-y-4">
           <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
@@ -94,19 +120,20 @@ export const ClimateView: React.FC = () => {
               </div>
               <div>
                 <h2 className="text-base font-bold text-white">
-                  {String(data.coordinates?.city || data.climate.city || cityInput)}
+                  {placeName}
+                  {placeState && <span className="text-sm font-normal text-slate-400">, {placeState}</span>}
                 </h2>
                 <div className="text-xs text-slate-400 font-mono flex items-center gap-3 mt-0.5">
-                  <span>Lat: {String(data.coordinates?.latitude || data.climate.latitude)}</span>
-                  <span>Long: {String(data.coordinates?.longitude || data.climate.longitude)}</span>
+                  <span>Lat: {coordinates?.latitude ?? climate.latitude}</span>
+                  <span>Long: {coordinates?.longitude ?? climate.longitude}</span>
                 </div>
               </div>
             </div>
 
-            {data.climate.time && (
+            {climate.time && (
               <div className="text-xs text-slate-400 flex items-center gap-1.5 font-mono bg-slate-950 px-3 py-1 rounded-lg border border-slate-800">
                 <Clock className="w-3.5 h-3.5" />
-                <span>{data.climate.time}</span>
+                <span>{climate.time}</span>
               </div>
             )}
           </div>
@@ -114,54 +141,78 @@ export const ClimateView: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
               <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                <span>Temperatura</span>
+                <span>Temperatura agora</span>
                 <Thermometer className="w-4 h-4 text-amber-400" />
               </div>
               <div className="text-2xl font-bold text-white font-mono">
-                {data.climate.temperature} °C
+                {climate.temperature ?? '--'} °C
               </div>
               <div className="text-xs text-slate-400 mt-1">
-                Média 7d: {data.climate.temperature_forecast} °C
+                Média dos próximos 7 dias: {climate.temperature_mean_7d ?? '--'} °C
               </div>
             </div>
 
             <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
               <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                <span>Umidade</span>
+                <span>Umidade agora</span>
                 <Droplets className="w-4 h-4 text-cyan-400" />
               </div>
               <div className="text-2xl font-bold text-white font-mono">
-                {data.climate.humidity}%
+                {climate.humidity ?? '--'}%
               </div>
-              <div className="text-xs text-slate-400 mt-1">Umidade relativa</div>
+              <div className="text-xs text-slate-400 mt-1">
+                Média dos próximos 7 dias: {climate.humidity_mean_7d ?? '--'}%
+              </div>
             </div>
 
             <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
               <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                <span>Precipitação</span>
+                <span>Precipitação agora</span>
                 <CloudRain className="w-4 h-4 text-blue-400" />
               </div>
               <div className="text-2xl font-bold text-white font-mono">
-                {data.climate.precipitation ?? 0} mm
+                {climate.precipitation ?? 0} mm
               </div>
               <div className="text-xs text-slate-400 mt-1">
-                Previsto 7d: {data.climate.preciptation_forecast} mm
+                Total previsto em 7 dias: {climate.precipitation_total_7d ?? '--'} mm
               </div>
             </div>
 
             <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
               <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                <span>Vento</span>
+                <span>Vento agora</span>
                 <Wind className="w-4 h-4 text-teal-400" />
               </div>
               <div className="text-2xl font-bold text-white font-mono">
-                {data.climate.wind_speed} km/h
+                {climate.wind_speed ?? '--'} km/h
               </div>
               <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                 <Compass className="w-3 h-3 text-slate-400" />
-                <span>{data.climate.wind_direction}°</span>
+                <span>{climate.wind_direction ?? '--'}°</span>
               </div>
             </div>
+          </div>
+
+          {/* What the recommendation model receives for this city */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              <Cpu className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Usado pelo modelo de recomendação</span>
+            </div>
+            <dl className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800/80">
+                <dt className="text-slate-400 text-[11px]">Temperatura média (7 dias)</dt>
+                <dd className="font-mono text-white font-semibold mt-0.5">{climate.temperature_mean_7d ?? '--'} °C</dd>
+              </div>
+              <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800/80">
+                <dt className="text-slate-400 text-[11px]">Umidade média (7 dias)</dt>
+                <dd className="font-mono text-white font-semibold mt-0.5">{climate.humidity_mean_7d ?? '--'}%</dd>
+              </div>
+              <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800/80">
+                <dt className="text-slate-400 text-[11px]">Chuva média mensal (últimos 12 meses)</dt>
+                <dd className="font-mono text-white font-semibold mt-0.5">{climate.rainfall_monthly_avg ?? '--'} mm/mês</dd>
+              </div>
+            </dl>
           </div>
         </div>
       )}

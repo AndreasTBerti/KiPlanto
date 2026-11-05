@@ -12,7 +12,9 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/ai': 'http://localhost:8000',
+      '/auth': 'http://localhost:8000',
       '/health': 'http://localhost:8000',
+      '/news': 'http://localhost:8000',
     }
   }
 })

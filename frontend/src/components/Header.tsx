@@ -1,10 +1,12 @@
 import React from 'react';
-import { Menu } from 'lucide-react';
+import { LogOut, Menu } from 'lucide-react';
 import type { NavTab } from './Sidebar';
 
 interface HeaderProps {
   activeTab: NavTab;
   onOpenMobileMenu: () => void;
+  userName: string;
+  onLogout: () => void;
 }
 
 const TAB_TITLES: Record<NavTab, { title: string }> = {
@@ -17,6 +19,9 @@ const TAB_TITLES: Record<NavTab, { title: string }> = {
   climate: {
     title: 'Consulta Climática',
   },
+  news: {
+    title: 'Notícias da Colheita',
+  },
   catalog: {
     title: 'Catálogo de Culturas',
   },
@@ -28,6 +33,8 @@ const TAB_TITLES: Record<NavTab, { title: string }> = {
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   onOpenMobileMenu,
+  userName,
+  onLogout,
 }) => {
   const current = TAB_TITLES[activeTab];
 
@@ -42,6 +49,19 @@ export const Header: React.FC<HeaderProps> = ({
           <Menu className="w-5 h-5" />
         </button>
         <h1 className="text-base font-semibold text-white tracking-tight">{current.title}</h1>
+      </div>
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="hidden sm:block max-w-48 truncate text-sm text-slate-300" title={userName}>
+          {userName}
+        </span>
+        <button
+          type="button"
+          onClick={onLogout}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-800 text-xs font-medium text-slate-300 hover:text-white hover:border-slate-700 cursor-pointer"
+        >
+          <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+          Sair
+        </button>
       </div>
     </header>
   );

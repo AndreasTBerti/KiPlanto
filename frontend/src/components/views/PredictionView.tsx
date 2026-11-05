@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  MapPin,
   Sparkles,
   CloudRain,
   Thermometer,
@@ -8,29 +7,26 @@ import {
   Droplets,
   AlertCircle,
   CheckCircle2,
-  Sliders
+  Sliders,
+  Info
 } from 'lucide-react';
 import type { PrevisionInput, PrevisionOutput, PredictionHistoryItem } from '../../types/api';
 import { CROP_DICTIONARY } from '../../types/api';
 import { predictCrop } from '../../services/api';
+import { COMMON_CITIES } from '../../constants/cities';
+import { CityPicker } from '../CityPicker';
+import { RegionalNewsCard } from '../news/RegionalNewsCard';
+import type { NewsIntent } from '../news/newsUtils';
 
 interface PredictionViewProps {
   onSaveHistory: (item: PredictionHistoryItem) => void;
+  /** Abre a aba de notícias a partir do card de notícias da região. */
+  onOpenNews: (intent: NewsIntent) => void;
 }
 
-const COMMON_CITIES = [
-  'Tupã',
-  'Campinas',
-  'Ribeirão Preto',
-  'Londrina',
-  'Uberlândia',
-  'Petrolina',
-  'Cascavel',
-  'Sorriso'
-];
-
-export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory }) => {
+export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory, onOpenNews }) => {
   const [city, setCity] = useState('Tupã');
+  const [uf, setUf] = useState('SP');
   const [nRatio, setNRatio] = useState<number>(60);
   const [pRatio, setPRatio] = useState<number>(45);
   const [kRatio, setKRatio] = useState<number>(50);
@@ -42,8 +38,8 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!city.trim()) {
-      setError('Informe o nome da cidade.');
+    if (!city) {
+      setError('Selecione o município na lista.');
       return;
     }
 
@@ -51,7 +47,8 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory })
     setError(null);
 
     const inputData: PrevisionInput = {
-      city: city.trim(),
+      city,
+      state: uf,
       n_ratio: Number(nRatio),
       p_ratio: Number(pRatio),
       k_ratio: Number(kRatio),
@@ -65,7 +62,8 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory })
       const historyItem: PredictionHistoryItem = {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
-        city: inputData.city,
+        city: response.city || inputData.city,
+        uf: response.uf,
         inputs: {
           n: inputData.n_ratio,
           p: inputData.p_ratio,
@@ -83,8 +81,11 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory })
     }
   };
 
-  const cropKey = result?.crop_recomendation?.toLowerCase() || '';
+  const cropKey = result?.crop_recommendation?.toLowerCase() || '';
   const cropInfo = CROP_DICTIONARY[cropKey];
+  const resolvedPlace = result
+    ? `${result.city || city}${result.uf ? `/${result.uf}` : ''}`
+    : '';
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -92,38 +93,40 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory })
         {/* Left Column: Input Form (5 cols) */}
         <div className="lg:col-span-5">
           <form onSubmit={handleSubmit} className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-5">
-            {/* City */}
+            {/* City + UF */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-300">
-                Município
-              </label>
-              <div className="relative">
-                <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="Nome do município"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-hidden focus:border-emerald-500 transition-colors"
-                  required
-                />
-              </div>
+              <span className="block text-xs font-semibold text-slate-300">Município</span>
+              <CityPicker
+                city={city}
+                uf={uf}
+                onChange={(nextCity, nextUf) => {
+                  setCity(nextCity);
+                  setUf(nextUf);
+                }}
+              />
 
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {COMMON_CITIES.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCity(c)}
-                    className={`text-[11px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
-                      city === c
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
+                {COMMON_CITIES.map((c) => {
+                  const isActive = city === c.name && uf === c.uf;
+                  return (
+                    <button
+                      key={`${c.name}-${c.uf}`}
+                      type="button"
+                      onClick={() => {
+                        setCity(c.name);
+                        setUf(c.uf);
+                      }}
+                      title={`${c.name}/${c.uf}`}
+                      className={`text-[11px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
+                        isActive
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
+                      }`}
+                    >
+                      {c.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -147,6 +150,7 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory })
                   step="1"
                   value={nRatio}
                   onChange={(e) => setNRatio(Number(e.target.value))}
+                  aria-label="Nitrogênio (N) em mg/kg"
                   className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
                 />
               </div>
@@ -164,6 +168,7 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory })
                   step="1"
                   value={pRatio}
                   onChange={(e) => setPRatio(Number(e.target.value))}
+                  aria-label="Fósforo (P) em mg/kg"
                   className="w-full accent-blue-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
                 />
               </div>
@@ -181,6 +186,7 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory })
                   step="1"
                   value={kRatio}
                   onChange={(e) => setKRatio(Number(e.target.value))}
+                  aria-label="Potássio (K) em mg/kg"
                   className="w-full accent-purple-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
                 />
               </div>
@@ -198,8 +204,14 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory })
                   step="0.1"
                   value={ph}
                   onChange={(e) => setPh(Number(e.target.value))}
+                  aria-label="pH do solo"
+                  aria-describedby="ph-note"
                   className="w-full accent-amber-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
                 />
+                <p id="ph-note" className="text-[11px] text-slate-400 flex items-start gap-1.5 pt-0.5">
+                  <Info className="w-3 h-3 mt-0.5 shrink-0" />
+                  <span>Registrado no histórico, mas não usado pelo modelo atual (treinado sem pH).</span>
+                </p>
               </div>
             </div>
 
@@ -238,16 +250,26 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory })
 
           {result ? (
             <div className="space-y-4">
+              {/* Notícias em destaque, cruzadas com o modelo (SPEC §6.4) */}
+              {result.features && (
+                <RegionalNewsCard
+                  city={result.city || city}
+                  uf={result.uf}
+                  features={result.features}
+                  onOpenNews={onOpenNews}
+                />
+              )}
+
               {/* Primary Output Card */}
               <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-6">
                 <div className="flex items-center justify-between pb-4 border-b border-slate-800">
                   <div className="flex items-center space-x-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      Recomendação
+                      Recomendação · {resolvedPlace}
                     </span>
                   </div>
-                  {result.confidence && (
+                  {result.confidence != null && (
                     <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
                       {result.confidence}% Confiança
                     </span>
@@ -255,12 +277,12 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory })
                 </div>
 
                 <div className="py-5">
-                  <span className="text-xs text-slate-400 font-medium">Cultura Indicada</span>
+                  <span className="text-xs text-slate-400 font-medium">Cultura Indicada pelo Modelo</span>
                   <div className="flex items-baseline space-x-3 mt-1">
                     <h2 className="text-3xl font-extrabold text-white tracking-tight">
-                      {cropInfo?.namePt || result.crop_recomendation}
+                      {cropInfo?.namePt || result.crop_recommendation}
                     </h2>
-                    <span className="text-xs font-mono text-slate-400">({result.crop_recomendation})</span>
+                    <span className="text-xs font-mono text-slate-400">({result.crop_recommendation})</span>
                   </div>
 
                   {cropInfo && (
@@ -304,13 +326,41 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory })
                 )}
               </div>
 
-              {/* Climate Telemetry */}
+              {/* Values actually fed to the model */}
+              {result.features && (
+                <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-1">
+                    <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      Entradas do Modelo
+                    </h3>
+                    <span className="text-[11px] text-slate-400">valores usados na predição</span>
+                  </div>
+                  <dl className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                    {[
+                      { label: 'Nitrogênio (N)', value: `${result.features.N} mg/kg` },
+                      { label: 'Fósforo (P)', value: `${result.features.P} mg/kg` },
+                      { label: 'Potássio (K)', value: `${result.features.K} mg/kg` },
+                      { label: 'Temperatura média (7 dias)', value: `${result.features.temperature} °C` },
+                      { label: 'Umidade média (7 dias)', value: `${result.features.humidity}%` },
+                      { label: 'Chuva média mensal (12 meses)', value: `${result.features.rainfall} mm/mês` },
+                    ].map((item) => (
+                      <div key={item.label} className="p-2.5 bg-slate-950 rounded-lg border border-slate-800/80">
+                        <dt className="text-slate-400 text-[11px]">{item.label}</dt>
+                        <dd className="font-mono text-white font-semibold mt-0.5">{item.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+
+              {/* Current conditions (display only) */}
               {result.climate_data && (
                 <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-baseline justify-between gap-1">
                     <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                      Clima Local ({result.city || city})
+                      Condições Atuais ({resolvedPlace})
                     </h3>
+                    <span className="text-[11px] text-slate-400">leitura do momento, só informativa</span>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

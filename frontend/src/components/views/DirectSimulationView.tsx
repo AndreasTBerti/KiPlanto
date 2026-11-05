@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   Thermometer,
   Droplets,
@@ -28,7 +28,7 @@ export const DirectSimulationView: React.FC<DirectSimulationViewProps> = ({ onSa
   const [result, setResult] = useState<PrevisionOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const runSimulation = async () => {
+  const runSimulation = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -48,7 +48,8 @@ export const DirectSimulationView: React.FC<DirectSimulationViewProps> = ({ onSa
           id: crypto.randomUUID(),
           timestamp: new Date().toISOString(),
           city: 'Simulação Manual',
-          inputs: { n, p, k, ph: 6.5 },
+          // Sem pH: a simulação não coleta pH e o modelo não usa essa variável.
+          inputs: { n, p, k },
           result: response
         });
       }
@@ -58,16 +59,17 @@ export const DirectSimulationView: React.FC<DirectSimulationViewProps> = ({ onSa
     } finally {
       setLoading(false);
     }
-  };
+  }, [n, p, k, temperature, humidity, rainfall, autoSimulate, onSaveHistory]);
 
+  // runSimulation muda sempre que algum parâmetro muda: o efeito refaz a
+  // simulação (com debounce de 250 ms) só no modo Tempo Real.
   useEffect(() => {
-    if (autoSimulate) {
-      const timer = setTimeout(() => {
-        runSimulation();
-      }, 250);
-      return () => clearTimeout(timer);
-    }
-  }, [n, p, k, temperature, humidity, rainfall, autoSimulate]);
+    if (!autoSimulate) return;
+    const timer = setTimeout(() => {
+      runSimulation();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [autoSimulate, runSimulation]);
 
   const handleReset = () => {
     setN(80);
@@ -78,7 +80,7 @@ export const DirectSimulationView: React.FC<DirectSimulationViewProps> = ({ onSa
     setRainfall(120);
   };
 
-  const cropKey = result?.crop_recomendation?.toLowerCase() || '';
+  const cropKey = result?.crop_recommendation?.toLowerCase() || '';
   const cropInfo = CROP_DICTIONARY[cropKey];
 
   return (
@@ -169,7 +171,7 @@ export const DirectSimulationView: React.FC<DirectSimulationViewProps> = ({ onSa
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-300 font-medium flex items-center gap-1">
                     <Thermometer className="w-3 h-3 text-amber-400" />
-                    Temperatura
+                    Temperatura média
                   </span>
                   <span className="font-mono text-amber-400 font-bold">{temperature} °C</span>
                 </div>
@@ -188,7 +190,7 @@ export const DirectSimulationView: React.FC<DirectSimulationViewProps> = ({ onSa
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-300 font-medium flex items-center gap-1">
                     <Droplets className="w-3 h-3 text-cyan-400" />
-                    Umidade
+                    Umidade média
                   </span>
                   <span className="font-mono text-cyan-400 font-bold">{humidity}%</span>
                 </div>
@@ -207,9 +209,9 @@ export const DirectSimulationView: React.FC<DirectSimulationViewProps> = ({ onSa
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-300 font-medium flex items-center gap-1">
                     <CloudRain className="w-3 h-3 text-teal-400" />
-                    Precipitação
+                    Chuva média mensal
                   </span>
-                  <span className="font-mono text-teal-400 font-bold">{rainfall} mm</span>
+                  <span className="font-mono text-teal-400 font-bold">{rainfall} mm/mês</span>
                 </div>
                 <input
                   type="range"
@@ -256,7 +258,7 @@ export const DirectSimulationView: React.FC<DirectSimulationViewProps> = ({ onSa
                   <div className="w-3 h-3 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
                   Calculando...
                 </span>
-              ) : result?.confidence ? (
+              ) : result?.confidence != null ? (
                 <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
                   {result.confidence}% Confiança
                 </span>
@@ -268,9 +270,9 @@ export const DirectSimulationView: React.FC<DirectSimulationViewProps> = ({ onSa
                 <div>
                   <span className="text-xs text-slate-400 font-medium">Recomendação Ótima</span>
                   <h2 className="text-2xl font-extrabold text-white mt-1">
-                    {cropInfo?.namePt || result.crop_recomendation}
+                    {cropInfo?.namePt || result.crop_recommendation}
                   </h2>
-                  <span className="text-xs font-mono text-slate-400">({result.crop_recomendation})</span>
+                  <span className="text-xs font-mono text-slate-400">({result.crop_recommendation})</span>
                   {cropInfo && (
                     <p className="text-xs text-slate-400 mt-2">{cropInfo.description}</p>
                   )}

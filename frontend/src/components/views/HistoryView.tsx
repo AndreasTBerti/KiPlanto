@@ -22,12 +22,20 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<PredictionHistoryItem | null>(null);
 
+  const placeLabel = (item: PredictionHistoryItem) => (item.uf ? `${item.city}/${item.uf}` : item.city);
+
+  // Registros gravados depois da correção trazem rainfall_monthly_avg: neles a
+  // chuva do modelo é mensal (mm/mês) e temperatura/umidade são médias de 7 dias.
+  const selectedFeatures = selectedItem?.result.features;
+  const selectedUsesCorrectedScales = selectedItem?.result.climate_data?.rainfall_monthly_avg != null;
+
   const filteredHistory = history.filter((item) => {
-    const cropName = CROP_DICTIONARY[item.result.crop_recomendation.toLowerCase()]?.namePt || item.result.crop_recomendation;
+    const term = searchTerm.toLowerCase();
+    const cropName = CROP_DICTIONARY[item.result.crop_recommendation.toLowerCase()]?.namePt || item.result.crop_recommendation;
     return (
-      item.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cropName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.result.crop_recomendation.toLowerCase().includes(searchTerm.toLowerCase())
+      placeLabel(item).toLowerCase().includes(term) ||
+      cropName.toLowerCase().includes(term) ||
+      item.result.crop_recommendation.toLowerCase().includes(term)
     );
   });
 
@@ -93,7 +101,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               </thead>
               <tbody className="divide-y divide-slate-800/70 text-slate-300">
                 {filteredHistory.map((item) => {
-                  const cropInfo = CROP_DICTIONARY[item.result.crop_recomendation.toLowerCase()];
+                  const cropInfo = CROP_DICTIONARY[item.result.crop_recommendation.toLowerCase()];
                   return (
                     <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
                       <td className="p-3.5 font-mono text-slate-400">
@@ -104,21 +112,21 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                       </td>
                       <td className="p-3.5 font-medium text-white flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        {item.city}
+                        {placeLabel(item)}
                       </td>
                       <td className="p-3.5">
                         <span className="font-semibold text-emerald-400">
-                          {cropInfo?.namePt || item.result.crop_recomendation}
+                          {cropInfo?.namePt || item.result.crop_recommendation}
                         </span>
                         <span className="text-[10px] text-slate-400 ml-1 font-mono">
-                          ({item.result.crop_recomendation})
+                          ({item.result.crop_recommendation})
                         </span>
                       </td>
                       <td className="p-3.5 font-mono text-slate-400">
                         N:{item.inputs.n} P:{item.inputs.p} K:{item.inputs.k}
                       </td>
                       <td className="p-3.5 font-mono">
-                        {item.result.confidence ? (
+                        {item.result.confidence != null ? (
                           <span className="text-emerald-400 font-medium">
                             {item.result.confidence}%
                           </span>
@@ -178,31 +186,51 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
                 <span className="text-slate-400">Cultura Recomendada:</span>
                 <div className="text-xl font-bold text-emerald-400 mt-0.5">
-                  {CROP_DICTIONARY[selectedItem.result.crop_recomendation.toLowerCase()]?.namePt ||
-                    selectedItem.result.crop_recomendation}
+                  {CROP_DICTIONARY[selectedItem.result.crop_recommendation.toLowerCase()]?.namePt ||
+                    selectedItem.result.crop_recommendation}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 font-mono">
                 <div className="p-2.5 bg-slate-950 rounded border border-slate-800">
                   <span className="text-slate-400 block text-[10px]">Município</span>
-                  <span className="text-white">{selectedItem.city}</span>
+                  <span className="text-white">{placeLabel(selectedItem)}</span>
                 </div>
                 <div className="p-2.5 bg-slate-950 rounded border border-slate-800">
                   <span className="text-slate-400 block text-[10px]">Confiança</span>
-                  <span className="text-emerald-400">{selectedItem.result.confidence || '--'}%</span>
+                  <span className="text-emerald-400">
+                    {selectedItem.result.confidence != null ? `${selectedItem.result.confidence}%` : '--'}
+                  </span>
                 </div>
                 <div className="p-2.5 bg-slate-950 rounded border border-slate-800">
                   <span className="text-slate-400 block text-[10px]">Nitrogênio / Fósforo</span>
                   <span className="text-white">N: {selectedItem.inputs.n} | P: {selectedItem.inputs.p}</span>
                 </div>
                 <div className="p-2.5 bg-slate-950 rounded border border-slate-800">
-                  <span className="text-slate-400 block text-[10px]">Potássio / pH</span>
-                  <span className="text-white">K: {selectedItem.inputs.k} | pH: {selectedItem.inputs.ph}</span>
+                  <span className="text-slate-400 block text-[10px]">Potássio / pH (pH não usado pelo modelo)</span>
+                  <span className="text-white">K: {selectedItem.inputs.k} | pH: {selectedItem.inputs.ph ?? '--'}</span>
                 </div>
               </div>
 
-              {selectedItem.result.climate_data && (
+              {selectedFeatures ? (
+                <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-1 font-mono">
+                  <span className="text-slate-400 block text-[10px]">Clima usado pelo modelo</span>
+                  {selectedUsesCorrectedScales ? (
+                    <div className="text-slate-300">
+                      Temp. média: {selectedFeatures.temperature} °C | Umidade média: {selectedFeatures.humidity}% | Chuva média mensal: {selectedFeatures.rainfall} mm/mês
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-slate-300">
+                        Temp.: {selectedFeatures.temperature} °C | Umidade: {selectedFeatures.humidity}% | Chuva: {selectedFeatures.rainfall} mm
+                      </div>
+                      <span className="text-slate-500 block text-[10px] font-sans">
+                        Registro anterior à correção das escalas de clima do modelo.
+                      </span>
+                    </>
+                  )}
+                </div>
+              ) : selectedItem.result.climate_data && (
                 <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-1 font-mono">
                   <span className="text-slate-400 block text-[10px]">Telemetria Climática</span>
                   <div className="text-slate-300">

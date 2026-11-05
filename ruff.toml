@@ -1,0 +1,8 @@
+# Lint do backend Python. Rode na raiz:  ruff check .   (ou  ruff check --fix .)
+target-version = "py310"
+line-length = 120
+extend-exclude = ["venv", "frontend", "docs"]
+
+[lint]
+# E/W: pycodestyle · F: pyflakes · B: bugbear · I: ordem dos imports
+select = ["E", "F", "W", "B", "I"]

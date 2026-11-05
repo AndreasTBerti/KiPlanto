@@ -3,12 +3,13 @@ import {
   Sprout,
   SlidersHorizontal,
   CloudSun,
+  Newspaper,
   BookOpen,
   History,
   X
 } from 'lucide-react';
 
-export type NavTab = 'prediction' | 'simulation' | 'climate' | 'catalog' | 'history';
+export type NavTab = 'prediction' | 'simulation' | 'climate' | 'news' | 'catalog' | 'history';
 
 interface SidebarProps {
   activeTab: NavTab;
@@ -27,6 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'prediction' as NavTab, label: 'Recomendação de Safra', icon: Sprout },
     { id: 'simulation' as NavTab, label: 'Simulação Direta', icon: SlidersHorizontal },
     { id: 'climate' as NavTab, label: 'Consulta Climática', icon: CloudSun },
+    { id: 'news' as NavTab, label: 'Notícias da Colheita', icon: Newspaper },
     { id: 'catalog' as NavTab, label: 'Catálogo de Culturas', icon: BookOpen },
     { id: 'history' as NavTab, label: 'Histórico de Análises', icon: History },
   ];
