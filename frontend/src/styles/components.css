@@ -84,6 +84,18 @@
 .kp-factors .r { font: 500 13px/18px var(--font-mono); color: var(--ink-muted); }
 .kp-alt { display: flex; gap: var(--space-2); flex-wrap: wrap; font: 400 14px/20px var(--font-sans); color: var(--ink-muted); align-items: center; }
 
+/* Cartão de resultado em destaque: cultura e pontuação sobre broto, fatores abaixo. */
+.kp-crop-featured { overflow: hidden; border-color: var(--broto); }
+.kp-crop-hero { margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) var(--space-2); padding: var(--space-6); background: var(--broto); color: var(--on-broto); display: flex; flex-direction: column; gap: var(--space-4); }
+.kp-crop-hero .kp-crop-rank,
+.kp-crop-hero .kp-crop-name,
+.kp-crop-hero .kp-crop-name .kp-icon,
+.kp-crop-hero .kp-score-num { color: var(--on-broto); }
+.kp-crop-hero .kp-score-bar { background: color-mix(in srgb, var(--on-broto) 25%, transparent); }
+.kp-crop-hero .kp-score-bar span { background: var(--on-broto); }
+.kp-crop-hero .kp-badge-alta { background: var(--on-broto); color: var(--broto-strong); }
+.kp-crop-featured .kp-factors { padding-top: 0; border-top: 0; }
+
 /* --- Extensões da aplicação --------------------------------------------- */
 
 /* Cartões: borda line, sem sombra. Só o cartão de resultado tem shadow-card. */

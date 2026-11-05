@@ -43,41 +43,44 @@ export const CropCard: React.FC<CropCardProps> = ({ result, place, busy = false,
     .filter((rec) => rec.score > 0);
 
   return (
-    <article className="kp-crop">
-      <div className="kp-crop-top">
-        <span className="kp-crop-rank">1ª recomendação{place ? ` · ${place}` : ''}</span>
-        {busy ? (
-          <span className="inline-flex items-center gap-1 text-sm text-ink-muted" role="status">
-            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-            Calculando
-          </span>
-        ) : (
-          score != null && <ConfidenceBadge score={score} />
+    <article className="kp-crop kp-crop-featured">
+      {/* Bloco em broto: a resposta da tela, acima de qualquer outro destaque. */}
+      <div className="kp-crop-hero">
+        <div className="kp-crop-top">
+          <span className="kp-crop-rank">1ª recomendação{place ? ` · ${place}` : ''}</span>
+          {busy ? (
+            <span className="inline-flex items-center gap-1 text-sm" role="status">
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+              Calculando
+            </span>
+          ) : (
+            score != null && <ConfidenceBadge score={score} />
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="kp-crop-name">
+            <CulturaIcon className="kp-icon" />
+            {info?.namePt ?? result.crop_recommendation}
+          </h2>
+          {info && <p className="text-sm">{info.description}</p>}
+        </div>
+
+        {score != null && (
+          <div className="space-y-1">
+            <div className="kp-score">
+              <div className="kp-score-bar" aria-hidden="true">
+                <span style={{ width: `${score}%` }} />
+              </div>
+              <span className="kp-score-num">
+                <span className="sr-only">Pontuação: </span>
+                {score}
+              </span>
+            </div>
+            <p className="text-[13px] leading-[18px]">Pontuação: confiança do modelo nesta cultura, de 0 a 100. Alta a partir de 70, média a partir de 40.</p>
+          </div>
         )}
       </div>
-
-      <div className="space-y-2">
-        <h2 className="kp-crop-name">
-          <CulturaIcon className="kp-icon" />
-          {info?.namePt ?? result.crop_recommendation}
-        </h2>
-        {info && <p className="text-sm text-ink-muted">{info.description}</p>}
-      </div>
-
-      {score != null && (
-        <div className="space-y-1">
-          <div className="kp-score">
-            <div className="kp-score-bar" aria-hidden="true">
-              <span style={{ width: `${score}%` }} />
-            </div>
-            <span className="kp-score-num">
-              <span className="sr-only">Pontuação: </span>
-              {score}
-            </span>
-          </div>
-          <p className="text-[13px] leading-[18px] text-ink-muted">Pontuação: confiança do modelo nesta cultura, de 0 a 100. Alta a partir de 70, média a partir de 40.</p>
-        </div>
-      )}
 
       {factors.length > 0 && (
         <div className="space-y-2">

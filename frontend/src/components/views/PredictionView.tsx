@@ -94,42 +94,25 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory, o
 
     return (
       <div ref={resultsRef} tabIndex={-1} className="max-w-6xl mx-auto space-y-6 outline-none">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div className="lg:col-span-5 space-y-6">
-            <CropCard
-              result={result}
-              place={resolvedPlace}
-              factorsNote="Valores entregues ao modelo. Temperatura e umidade: média de 7 dias. Chuva: média dos últimos 12 meses."
-            />
-            <MarketCard
-              crop={result.crop_recommendation.toLowerCase()}
-              cropName={CROP_DICTIONARY[result.crop_recommendation.toLowerCase()]?.namePt ?? result.crop_recommendation}
-              city={result.city || city}
-              uf={result.uf}
-            />
+        {/* Condições atuais (só exibição) e ação para recomeçar */}
+        <section className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {result.climate_data && (
+              <div className="space-y-1">
+                <h2 className="kp-label">Condições atuais · {resolvedPlace}</h2>
+                <p className="text-[13px] leading-[18px] text-ink-muted">Leitura do momento, só informativa</p>
+              </div>
+            )}
+            <Button
+              onClick={() => setResult(null)}
+              icon={<RotateCcw className="kp-icon" aria-hidden="true" />}
+              className="w-full sm:w-auto sm:ml-auto shrink-0"
+            >
+              Fazer outra análise
+            </Button>
           </div>
 
-          {/* Notícias cruzadas com o modelo (SPEC §6.4) */}
-          {result.features && (
-            <div className="lg:col-span-7">
-              <RegionalNewsCard
-                city={result.city || city}
-                uf={result.uf}
-                features={result.features}
-                onOpenNews={onOpenNews}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Current conditions (display only) */}
-        {result.climate_data && (
-          <section className="space-y-3">
-            <div className="flex flex-wrap items-baseline justify-between gap-1">
-              <h3 className="kp-label">Condições atuais · {resolvedPlace}</h3>
-              <span className="text-[13px] leading-[18px] text-ink-muted">Leitura do momento, só informativa</span>
-            </div>
-
+          {result.climate_data && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <ReadingTile
                 icon={<TemperaturaIcon />}
@@ -156,17 +139,35 @@ export const PredictionView: React.FC<PredictionViewProps> = ({ onSaveHistory, o
                 unit="km/h"
               />
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
-        <div className="flex justify-center pt-2">
-          <Button
-            onClick={() => setResult(null)}
-            icon={<RotateCcw className="kp-icon" aria-hidden="true" />}
-            className="w-full sm:w-auto"
-          >
-            Fazer outra análise
-          </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="lg:col-span-5 space-y-6">
+            <CropCard
+              result={result}
+              place={resolvedPlace}
+              factorsNote="Valores entregues ao modelo. Temperatura e umidade: média de 7 dias. Chuva: média dos últimos 12 meses."
+            />
+            <MarketCard
+              crop={result.crop_recommendation.toLowerCase()}
+              cropName={CROP_DICTIONARY[result.crop_recommendation.toLowerCase()]?.namePt ?? result.crop_recommendation}
+              city={result.city || city}
+              uf={result.uf}
+            />
+          </div>
+
+          {/* Notícias cruzadas com o modelo (SPEC §6.4) */}
+          {result.features && (
+            <div className="lg:col-span-7">
+              <RegionalNewsCard
+                city={result.city || city}
+                uf={result.uf}
+                features={result.features}
+                onOpenNews={onOpenNews}
+              />
+            </div>
+          )}
         </div>
       </div>
     );
