@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { AlertCircle, CalendarDays, Newspaper, Search, Sprout } from 'lucide-react';
+import { CalendarDays, Newspaper, Search } from 'lucide-react';
 import type { NewsArticle, NewsQuery, NewsResponse } from '../../types/api';
 import { CROP_DICTIONARY } from '../../types/api';
 import { getHarvestNews } from '../../services/api';
@@ -7,6 +7,9 @@ import { COMMON_CITIES } from '../../constants/cities';
 import { CityPicker } from '../CityPicker';
 import { NewsCard, NewsCardSkeleton } from '../news/NewsCard';
 import { ArticleView } from '../news/ArticleView';
+import { Button } from '../ui/Button';
+import { Notice } from '../ui/Notice';
+import { CulturaIcon } from '../ui/icons';
 import type { NewsIntent } from '../news/newsUtils';
 import {
   NEWS_DAY_OPTIONS,
@@ -31,9 +34,6 @@ interface NewsViewProps {
 const CROP_OPTIONS = Object.entries(CROP_DICTIONARY)
   .map(([id, info]) => ({ id, name: info.namePt }))
   .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-
-const inputClass =
-  'bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-amber-500 transition-colors';
 
 export const NewsView: React.FC<NewsViewProps> = ({ intent, lastAnalysis, onGoToAnalysis }) => {
   const initialQuery = intent?.query ?? lastAnalysis;
@@ -155,7 +155,7 @@ export const NewsView: React.FC<NewsViewProps> = ({ intent, lastAnalysis, onGoTo
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Busca */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-3">
+      <div className="kp-card kp-card-compact space-y-3">
         <form onSubmit={handleSubmit} className="flex flex-wrap gap-3">
           <CityPicker
             city={cityInput}
@@ -164,7 +164,6 @@ export const NewsView: React.FC<NewsViewProps> = ({ intent, lastAnalysis, onGoTo
               setCityInput(nextCity);
               setUfInput(nextUf);
             }}
-            accent="amber"
             className="flex-1 min-w-[16rem]"
           />
 
@@ -173,7 +172,7 @@ export const NewsView: React.FC<NewsViewProps> = ({ intent, lastAnalysis, onGoTo
             <select
               value={daysInput}
               onChange={(e) => setDaysInput(Number(e.target.value))}
-              className={`${inputClass} w-full`}
+              className="kp-input"
             >
               {NEWS_DAY_OPTIONS.map((d) => (
                 <option key={d} value={d}>
@@ -185,7 +184,7 @@ export const NewsView: React.FC<NewsViewProps> = ({ intent, lastAnalysis, onGoTo
 
           <label className="w-48">
             <span className="sr-only">Cultura</span>
-            <select value={cropInput} onChange={(e) => setCropInput(e.target.value)} className={`${inputClass} w-full`}>
+            <select value={cropInput} onChange={(e) => setCropInput(e.target.value)} className="kp-input">
               <option value="">Todas as culturas</option>
               {CROP_OPTIONS.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -195,56 +194,41 @@ export const NewsView: React.FC<NewsViewProps> = ({ intent, lastAnalysis, onGoTo
             </select>
           </label>
 
-          <button
+          <Button
             type="submit"
-            disabled={loading || !cityInput}
-            className="bg-amber-600 hover:bg-amber-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+            loading={loading}
+            disabled={!cityInput}
+            icon={<Search className="kp-icon" aria-hidden="true" />}
           >
-            {loading ? (
-              <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-            ) : (
-              <Search className="w-4 h-4" aria-hidden="true" />
-            )}
-            <span>Buscar</span>
-          </button>
+            Buscar notícias
+          </Button>
         </form>
 
         <div className="flex flex-wrap gap-1.5">
-          {COMMON_CITIES.map((c) => {
-            const active = cityInput === c.name && ufInput === c.uf;
-            return (
-              <button
-                key={`${c.name}-${c.uf}`}
-                type="button"
-                onClick={() => handlePickCity(c.name, c.uf)}
-                className={`text-[11px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
-                  active
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
-                }`}
-              >
-                {c.name}
-              </button>
-            );
-          })}
+          {COMMON_CITIES.map((c) => (
+            <button
+              key={`${c.name}-${c.uf}`}
+              type="button"
+              onClick={() => handlePickCity(c.name, c.uf)}
+              aria-pressed={cityInput === c.name && ufInput === c.uf}
+              className="kp-filter"
+            >
+              {c.name}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Sem análise ainda: as notícias partem da região e da cultura indicada */}
       {!query && !loading && (
-        <div className="bg-slate-900/40 border border-slate-800/80 border-dashed rounded-xl p-10 text-center space-y-4">
-          <Newspaper className="w-8 h-8 text-slate-600 mx-auto" aria-hidden="true" />
-          <p className="text-sm text-slate-300">
+        <div className="kp-empty space-y-4">
+          <Newspaper className="w-8 h-8 text-terra mx-auto" aria-hidden="true" />
+          <p>
             Faça uma análise para ver as notícias da sua região e da cultura indicada, ou escolha um município acima.
           </p>
-          <button
-            type="button"
-            onClick={onGoToAnalysis}
-            className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 transition-colors cursor-pointer"
-          >
-            <Sprout className="w-4 h-4" aria-hidden="true" />
+          <Button variant="secondary" onClick={onGoToAnalysis} icon={<CulturaIcon />}>
             Fazer análise
-          </button>
+          </Button>
         </div>
       )}
 
@@ -252,16 +236,16 @@ export const NewsView: React.FC<NewsViewProps> = ({ intent, lastAnalysis, onGoTo
       {data && !loading && (
         <div className="space-y-1">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-sm font-semibold text-slate-200">
+            <h2 className="kp-card-title">
               {data.crop ? `Notícias de ${data.crop.name}` : 'Notícias de colheita'} · {data.location.city}
               {data.location.state ? `, ${data.location.state}` : ''}
             </h2>
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="kp-meta">
               {data.total} {data.total === 1 ? 'resultado' : 'resultados'} · {shownDays} dias
             </span>
           </div>
           {data.crop && data.articles.length > 0 && (
-            <p className={`text-xs ${cropHits > 0 ? 'text-emerald-300' : 'text-slate-400'}`}>
+            <p className={`text-sm ${cropHits > 0 ? 'text-broto' : 'text-ink-muted'}`}>
               {cropHits > 0
                 ? `${cropHits === 1 ? '1 notícia' : `${cropHits} notícias`} sobre ${data.crop.name} na região.`
                 : `Nada sobre ${data.crop.name} em ${placeLabel(data.location)} neste período. Veja o mais próximo:`}
@@ -270,15 +254,7 @@ export const NewsView: React.FC<NewsViewProps> = ({ intent, lastAnalysis, onGoTo
         </div>
       )}
 
-      {error && (
-        <div className="p-4 rounded-xl bg-rose-950/30 border border-rose-500/40 text-rose-300 text-xs flex items-start space-x-3">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-          <div>
-            <span className="font-semibold block">Erro</span>
-            <span>{error}</span>
-          </div>
-        </div>
-      )}
+      {error && <Notice title="Não foi possível buscar as notícias">{error}</Notice>}
 
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-busy="true" aria-label="Carregando notícias">
@@ -303,28 +279,23 @@ export const NewsView: React.FC<NewsViewProps> = ({ intent, lastAnalysis, onGoTo
       )}
 
       {!loading && data && data.articles.length === 0 && (
-        <div className="bg-slate-900/40 border border-slate-800/80 border-dashed rounded-xl p-10 text-center space-y-4">
-          <Newspaper className="w-8 h-8 text-slate-600 mx-auto" aria-hidden="true" />
-          <p className="text-sm text-slate-300">
+        <div className="kp-empty space-y-4">
+          <Newspaper className="w-8 h-8 text-terra mx-auto" aria-hidden="true" />
+          <p>
             Nenhuma notícia {data.crop ? `de ${data.crop.name}` : 'de colheita'} para {placeLabel(data.location)} nos últimos {shownDays} dias.
           </p>
           {shownDays < NEWS_WIDE_DAYS && (
-            <button
-              type="button"
-              onClick={handleWiden}
-              className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 transition-colors cursor-pointer"
-            >
-              <CalendarDays className="w-4 h-4" aria-hidden="true" />
+            <Button variant="secondary" onClick={handleWiden} icon={<CalendarDays className="kp-icon" aria-hidden="true" />}>
               Ampliar para {NEWS_WIDE_DAYS} dias
-            </button>
+            </Button>
           )}
         </div>
       )}
 
       {!loading && sources && (
-        <p className={`text-xs ${sources.partial ? 'text-amber-300/90' : 'text-slate-500'}`}>
+        <p className={`text-[13px] leading-[18px] ${sources.partial ? 'text-terra' : 'text-ink-muted'}`}>
           Fontes: {sources.text}
-          {updatedAt && <span className="text-slate-500"> · coletado às {updatedAt}</span>}
+          {updatedAt && <span className="text-ink-muted"> · coletado às {updatedAt}</span>}
         </p>
       )}
     </div>

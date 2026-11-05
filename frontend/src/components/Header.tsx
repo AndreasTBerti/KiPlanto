@@ -1,6 +1,8 @@
 import React from 'react';
 import { LogOut, Menu } from 'lucide-react';
 import type { NavTab } from './Sidebar';
+import { Button } from './ui/Button';
+import { ThemeToggle } from './ui/ThemeToggle';
 
 interface HeaderProps {
   activeTab: NavTab;
@@ -9,25 +11,13 @@ interface HeaderProps {
   onLogout: () => void;
 }
 
-const TAB_TITLES: Record<NavTab, { title: string }> = {
-  prediction: {
-    title: 'Recomendação de Safra',
-  },
-  simulation: {
-    title: 'Simulação Direta',
-  },
-  climate: {
-    title: 'Consulta Climática',
-  },
-  news: {
-    title: 'Notícias da Colheita',
-  },
-  catalog: {
-    title: 'Catálogo de Culturas',
-  },
-  history: {
-    title: 'Histórico de Análises',
-  },
+const TAB_TITLES: Record<NavTab, string> = {
+  prediction: 'Recomendação de safra',
+  simulation: 'Simulação direta',
+  climate: 'Consulta climática',
+  news: 'Notícias da colheita',
+  catalog: 'Catálogo de culturas',
+  history: 'Histórico de análises',
 };
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,34 +25,28 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMobileMenu,
   userName,
   onLogout,
-}) => {
-  const current = TAB_TITLES[activeTab];
-
-  return (
-    <header className="h-16 bg-slate-900/60 backdrop-blur-md border-b border-slate-800 px-6 flex items-center justify-between sticky top-0 z-30">
-      <div className="flex items-center space-x-3">
-        <button
-          onClick={onOpenMobileMenu}
-          className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-md hover:bg-slate-800 cursor-pointer"
-          aria-label="Abrir menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-        <h1 className="text-base font-semibold text-white tracking-tight">{current.title}</h1>
-      </div>
-      <div className="flex items-center gap-3 min-w-0">
-        <span className="hidden sm:block max-w-48 truncate text-sm text-slate-300" title={userName}>
-          {userName}
-        </span>
-        <button
-          type="button"
-          onClick={onLogout}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-800 text-xs font-medium text-slate-300 hover:text-white hover:border-slate-700 cursor-pointer"
-        >
-          <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
-          Sair
-        </button>
-      </div>
-    </header>
-  );
-};
+}) => (
+  <header className="h-16 bg-surface border-b border-line px-2 sm:px-4 md:px-8 flex items-center justify-between gap-2 sm:gap-3 sticky top-0 z-30">
+    <div className="flex items-center gap-2 min-w-0">
+      <button onClick={onOpenMobileMenu} className="kp-icon-btn lg:hidden" aria-label="Abrir menu">
+        <Menu className="kp-icon" aria-hidden="true" />
+      </button>
+      <h1 className="kp-page-title truncate">{TAB_TITLES[activeTab]}</h1>
+    </div>
+    <div className="flex items-center gap-2 shrink-0">
+      <span className="hidden sm:block max-w-48 truncate text-sm text-ink-muted" title={userName}>
+        {userName}
+      </span>
+      <ThemeToggle />
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={onLogout}
+        aria-label="Sair"
+        icon={<LogOut className="w-4 h-4" aria-hidden="true" />}
+      >
+        <span className="hidden sm:inline">Sair</span>
+      </Button>
+    </div>
+  </header>
+);

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#dcefd9"></rect><g transform="translate(18 17) scale(1.45)"><mask id="irib"><rect x="0" y="0" width="64" height="64" fill="#fff"></rect><path d="M27 32.5 Q 40 22 51.5 11" stroke="#000" stroke-width="2.4" fill="none" stroke-linecap="round"></path></mask>
+<rect x="9" y="6" width="13" height="52" rx="6.5" fill="#155c2f"></rect>
+<path d="M23.5 35 C 24.5 18, 38 7, 57 6 C 57 25, 44.5 35, 23.5 35 Z" fill="#1f7a3f" mask="url(#irib)"></path>
+<path d="M30.5 40.5 L 50.5 54" stroke="#9a4f2a" stroke-width="12" stroke-linecap="round" fill="none"></path></g></svg>

@@ -1,15 +1,12 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import {
-  Thermometer,
-  Droplets,
-  CloudRain,
-  RotateCcw,
-  Zap,
-  AlertCircle
-} from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import type { DirectPrevisionInput, PrevisionOutput, PredictionHistoryItem } from '../../types/api';
-import { CROP_DICTIONARY } from '../../types/api';
 import { predictCropDirect } from '../../services/api';
+import { Button } from '../ui/Button';
+import { CropCard } from '../ui/CropCard';
+import { Notice } from '../ui/Notice';
+import { ReadingField } from '../ui/ReadingField';
+import { SoloIcon, TemperaturaIcon, UmidadeIcon } from '../ui/icons';
 
 interface DirectSimulationViewProps {
   onSaveHistory: (item: PredictionHistoryItem) => void;
@@ -27,6 +24,8 @@ export const DirectSimulationView: React.FC<DirectSimulationViewProps> = ({ onSa
   const [autoSimulate, setAutoSimulate] = useState(true);
   const [result, setResult] = useState<PrevisionOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Remonta os campos ao restaurar: descarta também o que estava digitado e inválido.
+  const [resetCount, setResetCount] = useState(0);
 
   const runSimulation = useCallback(async () => {
     setLoading(true);
@@ -78,239 +77,72 @@ export const DirectSimulationView: React.FC<DirectSimulationViewProps> = ({ onSa
     setTemperature(24);
     setHumidity(65);
     setRainfall(120);
+    setResetCount((count) => count + 1);
   };
 
-  const cropKey = result?.crop_recommendation?.toLowerCase() || '';
-  const cropInfo = CROP_DICTIONARY[cropKey];
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!autoSimulate) runSimulation();
+  };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-          Ajuste de Parâmetros
-        </span>
-        <div className="flex items-center space-x-3">
-          <label className="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer select-none">
+    <div className="max-w-6xl mx-auto space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="kp-label">Parâmetros da simulação</h2>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-ink cursor-pointer select-none">
             <input
               type="checkbox"
               checked={autoSimulate}
               onChange={(e) => setAutoSimulate(e.target.checked)}
-              className="accent-emerald-500 rounded"
+              className="w-4 h-4 cursor-pointer accent-broto"
             />
-            <span className="flex items-center gap-1">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              Tempo Real
-            </span>
+            Calcular em tempo real
           </label>
 
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={handleReset}
-            className="flex items-center space-x-1 text-xs text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg border border-slate-800 hover:bg-slate-800 transition-colors cursor-pointer"
+            icon={<RotateCcw className="w-4 h-4" aria-hidden="true" />}
           >
-            <RotateCcw className="w-3 h-3" />
-            <span>Resetar</span>
-          </button>
+            Restaurar valores
+          </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: 6 Sliders (7 cols) */}
+        {/* Left: 6 campos (7 cols) */}
         <div className="lg:col-span-7">
-          <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* N */}
-              <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-300 font-medium">Nitrogênio (N)</span>
-                  <span className="font-mono text-emerald-400 font-bold">{n} mg/kg</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="140"
-                  value={n}
-                  onChange={(e) => setN(Number(e.target.value))}
-                  className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
-                />
-              </div>
-
-              {/* P */}
-              <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-300 font-medium">Fósforo (P)</span>
-                  <span className="font-mono text-blue-400 font-bold">{p} mg/kg</span>
-                </div>
-                <input
-                  type="range"
-                  min="5"
-                  max="145"
-                  value={p}
-                  onChange={(e) => setP(Number(e.target.value))}
-                  className="w-full accent-blue-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
-                />
-              </div>
-
-              {/* K */}
-              <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-300 font-medium">Potássio (K)</span>
-                  <span className="font-mono text-purple-400 font-bold">{k} mg/kg</span>
-                </div>
-                <input
-                  type="range"
-                  min="5"
-                  max="205"
-                  value={k}
-                  onChange={(e) => setK(Number(e.target.value))}
-                  className="w-full accent-purple-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
-                />
-              </div>
-
-              {/* Temperature */}
-              <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-300 font-medium flex items-center gap-1">
-                    <Thermometer className="w-3 h-3 text-amber-400" />
-                    Temperatura média
-                  </span>
-                  <span className="font-mono text-amber-400 font-bold">{temperature} °C</span>
-                </div>
-                <input
-                  type="range"
-                  min="5"
-                  max="45"
-                  value={temperature}
-                  onChange={(e) => setTemperature(Number(e.target.value))}
-                  className="w-full accent-amber-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
-                />
-              </div>
-
-              {/* Humidity */}
-              <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-300 font-medium flex items-center gap-1">
-                    <Droplets className="w-3 h-3 text-cyan-400" />
-                    Umidade média
-                  </span>
-                  <span className="font-mono text-cyan-400 font-bold">{humidity}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="100"
-                  value={humidity}
-                  onChange={(e) => setHumidity(Number(e.target.value))}
-                  className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
-                />
-              </div>
-
-              {/* Rainfall */}
-              <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-300 font-medium flex items-center gap-1">
-                    <CloudRain className="w-3 h-3 text-teal-400" />
-                    Chuva média mensal
-                  </span>
-                  <span className="font-mono text-teal-400 font-bold">{rainfall} mm/mês</span>
-                </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="300"
-                  value={rainfall}
-                  onChange={(e) => setRainfall(Number(e.target.value))}
-                  className="w-full accent-teal-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="kp-card space-y-6">
+            <div key={resetCount} className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+              <ReadingField label="Nitrogênio (N)" name="Nitrogênio (N)" icon={<SoloIcon />} unit="mg/kg" value={n} onChange={setN} min={0} max={140} />
+              <ReadingField label="Fósforo (P)" name="Fósforo (P)" icon={<SoloIcon />} unit="mg/kg" value={p} onChange={setP} min={5} max={145} />
+              <ReadingField label="Potássio (K)" name="Potássio (K)" icon={<SoloIcon />} unit="mg/kg" value={k} onChange={setK} min={5} max={205} />
+              <ReadingField label="Temperatura média" name="Temperatura média" icon={<TemperaturaIcon />} unit="°C" value={temperature} onChange={setTemperature} min={5} max={45} />
+              <ReadingField label="Umidade média" name="Umidade média" icon={<UmidadeIcon />} unit="%" value={humidity} onChange={setHumidity} min={10} max={100} />
+              <ReadingField label="Chuva média mensal" name="Chuva média mensal" icon={<UmidadeIcon />} unit="mm/mês" value={rainfall} onChange={setRainfall} min={10} max={300} />
             </div>
 
             {!autoSimulate && (
-              <button
-                onClick={runSimulation}
-                disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg text-sm transition-colors cursor-pointer"
-              >
-                <span>Calcular Predição</span>
-              </button>
+              <Button type="submit" loading={loading} className="w-full">
+                Calcular predição
+              </Button>
             )}
-          </div>
+          </form>
         </div>
 
         {/* Right: Output (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
-          {error && (
-            <div className="p-4 rounded-xl bg-rose-950/30 border border-rose-500/40 text-rose-300 text-xs flex items-start space-x-3">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold block">Erro</span>
-                <span>{error}</span>
-              </div>
+          {error && <Notice title="Não foi possível calcular a simulação">{error}</Notice>}
+
+          {result ? (
+            <CropCard result={result} busy={loading} />
+          ) : (
+            <div className="kp-empty">
+              {loading ? 'Calculando a primeira simulação.' : 'Ajuste os valores para ver a recomendação.'}
             </div>
           )}
-
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-6 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Resultado
-              </span>
-              {loading ? (
-                <span className="text-xs text-blue-400 flex items-center gap-1">
-                  <div className="w-3 h-3 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
-                  Calculando...
-                </span>
-              ) : result?.confidence != null ? (
-                <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-                  {result.confidence}% Confiança
-                </span>
-              ) : null}
-            </div>
-
-            {result ? (
-              <div className="space-y-4">
-                <div>
-                  <span className="text-xs text-slate-400 font-medium">Recomendação Ótima</span>
-                  <h2 className="text-2xl font-extrabold text-white mt-1">
-                    {cropInfo?.namePt || result.crop_recommendation}
-                  </h2>
-                  <span className="text-xs font-mono text-slate-400">({result.crop_recommendation})</span>
-                  {cropInfo && (
-                    <p className="text-xs text-slate-400 mt-2">{cropInfo.description}</p>
-                  )}
-                </div>
-
-                {result.top_recommendations && result.top_recommendations.length > 0 && (
-                  <div className="pt-4 border-t border-slate-800 space-y-2.5">
-                    <span className="text-xs font-semibold text-slate-400">
-                      Distribuição de Probabilidades
-                    </span>
-                    <div className="space-y-2">
-                      {result.top_recommendations.map((rec) => {
-                        const info = CROP_DICTIONARY[rec.crop.toLowerCase()];
-                        return (
-                          <div key={rec.crop} className="space-y-1">
-                            <div className="flex justify-between text-xs">
-                              <span className="text-slate-300 font-medium">{info?.namePt || rec.crop}</span>
-                              <span className="font-mono text-slate-400">{rec.probability}%</span>
-                            </div>
-                            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-blue-500 rounded-full"
-                                style={{ width: `${rec.probability}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-xs text-slate-400">
-                Ajuste os controles deslizantes para visualizar a previsão.
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

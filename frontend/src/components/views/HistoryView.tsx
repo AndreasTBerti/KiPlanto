@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import {
-  Trash2,
-  Download,
-  Search,
-  MapPin
-} from 'lucide-react';
+import { Trash2, Download, Search, MapPin, X } from 'lucide-react';
 import type { PredictionHistoryItem } from '../../types/api';
 import { CROP_DICTIONARY } from '../../types/api';
+import { formatDateTime, formatNumber, toScore } from '../../utils/format';
+import { Button } from '../ui/Button';
+import { ConfidenceBadge } from '../ui/ConfidenceBadge';
 
 interface HistoryViewProps {
   history: PredictionHistoryItem[];
   onClearHistory: () => void;
   onDeleteItem: (id: string) => void;
 }
+
+const cropName = (crop: string) => CROP_DICTIONARY[crop.toLowerCase()]?.namePt || crop;
 
 export const HistoryView: React.FC<HistoryViewProps> = ({
   history,
@@ -28,13 +28,13 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   // chuva do modelo é mensal (mm/mês) e temperatura/umidade são médias de 7 dias.
   const selectedFeatures = selectedItem?.result.features;
   const selectedUsesCorrectedScales = selectedItem?.result.climate_data?.rainfall_monthly_avg != null;
+  const selectedClimate = selectedItem?.result.climate_data;
 
   const filteredHistory = history.filter((item) => {
     const term = searchTerm.toLowerCase();
-    const cropName = CROP_DICTIONARY[item.result.crop_recommendation.toLowerCase()]?.namePt || item.result.crop_recommendation;
     return (
       placeLabel(item).toLowerCase().includes(term) ||
-      cropName.toLowerCase().includes(term) ||
+      cropName(item.result.crop_recommendation).toLowerCase().includes(term) ||
       item.result.crop_recommendation.toLowerCase().includes(term)
     );
   });
@@ -52,102 +52,86 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Search & Actions */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <div className="kp-card kp-card-compact flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
         <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-5 h-5 text-ink-muted absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Filtrar histórico..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-hidden focus:border-emerald-500 transition-colors"
+            placeholder="Filtrar por município ou cultura"
+            aria-label="Filtrar histórico"
+            className="kp-input kp-input-with-icon"
           />
         </div>
 
         {history.length > 0 && (
-          <div className="flex items-center space-x-2 shrink-0">
-            <button
-              onClick={handleExportJSON}
-              className="flex items-center space-x-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition-colors cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Exportar JSON</span>
-            </button>
-            <button
-              onClick={onClearHistory}
-              className="flex items-center space-x-1.5 text-xs bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 px-3 py-2 rounded-lg border border-rose-800/40 transition-colors cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Limpar</span>
-            </button>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:shrink-0">
+            <Button variant="secondary" size="sm" className="py-2.5 whitespace-nowrap" onClick={handleExportJSON} icon={<Download className="kp-icon" aria-hidden="true" />}>
+              Exportar JSON
+            </Button>
+            <Button variant="danger" size="sm" className="py-2.5 whitespace-nowrap" onClick={onClearHistory} icon={<Trash2 className="kp-icon" aria-hidden="true" />}>
+              Limpar histórico
+            </Button>
           </div>
         )}
       </div>
 
       {/* History Table */}
       {filteredHistory.length > 0 ? (
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="bg-surface-raised border border-line rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="kp-table">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400 font-mono bg-slate-950/40">
-                  <th className="p-3.5 font-medium">Data</th>
-                  <th className="p-3.5 font-medium">Município</th>
-                  <th className="p-3.5 font-medium">Cultura Recomendada</th>
-                  <th className="p-3.5 font-medium">Solo (N-P-K)</th>
-                  <th className="p-3.5 font-medium">Confiança</th>
-                  <th className="p-3.5 font-medium text-right">Ações</th>
+                <tr>
+                  <th>Data</th>
+                  <th>Município</th>
+                  <th>Cultura recomendada</th>
+                  <th>Solo (N-P-K)</th>
+                  <th>Pontuação</th>
+                  <th className="text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/70 text-slate-300">
+              <tbody>
                 {filteredHistory.map((item) => {
-                  const cropInfo = CROP_DICTIONARY[item.result.crop_recommendation.toLowerCase()];
+                  const score = item.result.confidence != null ? toScore(item.result.confidence) : null;
                   return (
-                    <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="p-3.5 font-mono text-slate-400">
-                        {new Date(item.timestamp).toLocaleString([], {
-                          dateStyle: 'short',
-                          timeStyle: 'short',
-                        })}
-                      </td>
-                      <td className="p-3.5 font-medium text-white flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        {placeLabel(item)}
-                      </td>
-                      <td className="p-3.5">
-                        <span className="font-semibold text-emerald-400">
-                          {cropInfo?.namePt || item.result.crop_recommendation}
-                        </span>
-                        <span className="text-[10px] text-slate-400 ml-1 font-mono">
-                          ({item.result.crop_recommendation})
+                    <tr key={item.id}>
+                      <td className="kp-data text-ink-muted whitespace-nowrap">{formatDateTime(item.timestamp)}</td>
+                      <td className="font-semibold">
+                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                          <MapPin className="w-4 h-4 text-terra" aria-hidden="true" />
+                          {placeLabel(item)}
                         </span>
                       </td>
-                      <td className="p-3.5 font-mono text-slate-400">
-                        N:{item.inputs.n} P:{item.inputs.p} K:{item.inputs.k}
+                      <td className="font-semibold">{cropName(item.result.crop_recommendation)}</td>
+                      <td className="kp-data text-ink-muted whitespace-nowrap">
+                        {formatNumber(item.inputs.n)}-{formatNumber(item.inputs.p)}-{formatNumber(item.inputs.k)}
                       </td>
-                      <td className="p-3.5 font-mono">
-                        {item.result.confidence != null ? (
-                          <span className="text-emerald-400 font-medium">
-                            {item.result.confidence}%
+                      <td>
+                        {score != null ? (
+                          <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                            <span className="kp-data">{score}</span>
+                            <ConfidenceBadge score={score} />
                           </span>
                         ) : (
                           '--'
                         )}
                       </td>
-                      <td className="p-3.5 text-right space-x-2">
-                        <button
-                          onClick={() => setSelectedItem(item)}
-                          className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800 border border-slate-700 cursor-pointer"
-                        >
-                          Detalhes
-                        </button>
-                        <button
-                          onClick={() => onDeleteItem(item.id)}
-                          className="text-xs text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
-                          title="Remover"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                      <td>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => setSelectedItem(item)}>
+                            Ver detalhes
+                          </Button>
+                          <button
+                            onClick={() => onDeleteItem(item.id)}
+                            className="kp-icon-btn kp-icon-btn-danger"
+                            aria-label={`Remover análise de ${placeLabel(item)}`}
+                            title="Remover"
+                          >
+                            <Trash2 className="kp-icon" aria-hidden="true" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -157,8 +141,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           </div>
         </div>
       ) : (
-        <div className="bg-slate-900/40 border border-slate-800/80 border-dashed rounded-xl p-12 text-center text-slate-400">
-          Nenhum registro encontrado no histórico.
+        <div className="kp-empty">
+          {history.length > 0 ? 'Nenhuma análise com esse filtro.' : 'Nenhuma análise no histórico ainda.'}
         </div>
       )}
 
@@ -166,79 +150,108 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
       {selectedItem && (
         <div
           onClick={() => setSelectedItem(null)}
-          className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+          className="kp-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-lg w-full space-y-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Detalhes da análise"
+            className="kp-crop w-full max-w-lg max-h-full overflow-y-auto"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-base font-semibold text-white">Detalhes da Análise</h3>
-              <button
-                onClick={() => setSelectedItem(null)}
-                className="text-slate-400 hover:text-white text-xs px-2 py-1 rounded bg-slate-800 cursor-pointer"
-              >
-                Fechar
+            <div className="kp-crop-top">
+              <span className="kp-crop-rank">{placeLabel(selectedItem)}</span>
+              <button onClick={() => setSelectedItem(null)} className="kp-icon-btn" aria-label="Fechar detalhes">
+                <X className="kp-icon" aria-hidden="true" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
-                <span className="text-slate-400">Cultura Recomendada:</span>
-                <div className="text-xl font-bold text-emerald-400 mt-0.5">
-                  {CROP_DICTIONARY[selectedItem.result.crop_recommendation.toLowerCase()]?.namePt ||
-                    selectedItem.result.crop_recommendation}
-                </div>
-              </div>
+            <h3 className="font-display text-3xl font-bold tracking-tight text-ink">
+              {cropName(selectedItem.result.crop_recommendation)}
+            </h3>
 
-              <div className="grid grid-cols-2 gap-2 font-mono">
-                <div className="p-2.5 bg-slate-950 rounded border border-slate-800">
-                  <span className="text-slate-400 block text-[10px]">Município</span>
-                  <span className="text-white">{placeLabel(selectedItem)}</span>
+            {selectedItem.result.confidence != null && (
+              <div className="kp-score">
+                <div className="kp-score-bar" aria-hidden="true">
+                  <span style={{ width: `${toScore(selectedItem.result.confidence)}%` }} />
                 </div>
-                <div className="p-2.5 bg-slate-950 rounded border border-slate-800">
-                  <span className="text-slate-400 block text-[10px]">Confiança</span>
-                  <span className="text-emerald-400">
-                    {selectedItem.result.confidence != null ? `${selectedItem.result.confidence}%` : '--'}
-                  </span>
-                </div>
-                <div className="p-2.5 bg-slate-950 rounded border border-slate-800">
-                  <span className="text-slate-400 block text-[10px]">Nitrogênio / Fósforo</span>
-                  <span className="text-white">N: {selectedItem.inputs.n} | P: {selectedItem.inputs.p}</span>
-                </div>
-                <div className="p-2.5 bg-slate-950 rounded border border-slate-800">
-                  <span className="text-slate-400 block text-[10px]">Potássio / pH (pH não usado pelo modelo)</span>
-                  <span className="text-white">K: {selectedItem.inputs.k} | pH: {selectedItem.inputs.ph ?? '--'}</span>
-                </div>
+                <span className="kp-score-num">
+                  <span className="sr-only">Pontuação: </span>
+                  {toScore(selectedItem.result.confidence)}
+                </span>
+                <ConfidenceBadge score={toScore(selectedItem.result.confidence)} />
               </div>
+            )}
 
-              {selectedFeatures ? (
-                <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-1 font-mono">
-                  <span className="text-slate-400 block text-[10px]">Clima usado pelo modelo</span>
-                  {selectedUsesCorrectedScales ? (
-                    <div className="text-slate-300">
-                      Temp. média: {selectedFeatures.temperature} °C | Umidade média: {selectedFeatures.humidity}% | Chuva média mensal: {selectedFeatures.rainfall} mm/mês
-                    </div>
-                  ) : (
-                    <>
-                      <div className="text-slate-300">
-                        Temp.: {selectedFeatures.temperature} °C | Umidade: {selectedFeatures.humidity}% | Chuva: {selectedFeatures.rainfall} mm
-                      </div>
-                      <span className="text-slate-500 block text-[10px] font-sans">
-                        Registro anterior à correção das escalas de clima do modelo.
-                      </span>
-                    </>
-                  )}
-                </div>
-              ) : selectedItem.result.climate_data && (
-                <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-1 font-mono">
-                  <span className="text-slate-400 block text-[10px]">Telemetria Climática</span>
-                  <div className="text-slate-300">
-                    Temp: {selectedItem.result.climate_data.temperature} °C | Umidade: {selectedItem.result.climate_data.humidity}% | Chuva: {selectedItem.result.climate_data.precipitation ?? 0} mm
-                  </div>
-                </div>
-              )}
-            </div>
+            <ul className="kp-factors">
+              <li>
+                <span>Nitrogênio (N)</span>
+                <span className="v">{formatNumber(selectedItem.inputs.n)}</span>
+                <span className="r">mg/kg</span>
+              </li>
+              <li>
+                <span>Fósforo (P)</span>
+                <span className="v">{formatNumber(selectedItem.inputs.p)}</span>
+                <span className="r">mg/kg</span>
+              </li>
+              <li>
+                <span>Potássio (K)</span>
+                <span className="v">{formatNumber(selectedItem.inputs.k)}</span>
+                <span className="r">mg/kg</span>
+              </li>
+              <li>
+                <span>pH (não usado pelo modelo)</span>
+                <span className="v">{formatNumber(selectedItem.inputs.ph)}</span>
+                <span className="r" />
+              </li>
+            </ul>
+
+            {selectedFeatures ? (
+              <div className="space-y-2">
+                <h4 className="kp-label">Clima usado pelo modelo</h4>
+                <ul className="kp-factors">
+                  <li>
+                    <span>{selectedUsesCorrectedScales ? 'Temperatura média' : 'Temperatura'}</span>
+                    <span className="v">{formatNumber(selectedFeatures.temperature)}</span>
+                    <span className="r">°C</span>
+                  </li>
+                  <li>
+                    <span>{selectedUsesCorrectedScales ? 'Umidade média' : 'Umidade'}</span>
+                    <span className="v">{formatNumber(selectedFeatures.humidity)}</span>
+                    <span className="r">%</span>
+                  </li>
+                  <li>
+                    <span>{selectedUsesCorrectedScales ? 'Chuva média mensal' : 'Chuva'}</span>
+                    <span className="v">{formatNumber(selectedFeatures.rainfall)}</span>
+                    <span className="r">{selectedUsesCorrectedScales ? 'mm/mês' : 'mm'}</span>
+                  </li>
+                </ul>
+                {!selectedUsesCorrectedScales && (
+                  <p className="kp-field-help">Registro anterior à correção das escalas de clima do modelo.</p>
+                )}
+              </div>
+            ) : selectedClimate && (
+              <div className="space-y-2">
+                <h4 className="kp-label">Clima no momento da análise</h4>
+                <ul className="kp-factors">
+                  <li>
+                    <span>Temperatura</span>
+                    <span className="v">{formatNumber(selectedClimate.temperature)}</span>
+                    <span className="r">°C</span>
+                  </li>
+                  <li>
+                    <span>Umidade</span>
+                    <span className="v">{formatNumber(selectedClimate.humidity)}</span>
+                    <span className="r">%</span>
+                  </li>
+                  <li>
+                    <span>Chuva</span>
+                    <span className="v">{formatNumber(selectedClimate.precipitation ?? 0)}</span>
+                    <span className="r">mm</span>
+                  </li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       )}

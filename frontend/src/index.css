@@ -1,23 +1,77 @@
 @import "tailwindcss";
+@import "./styles/tokens.css" layer(base);
+@import "./styles/components.css" layer(components);
+
+/* Só as cores do design system geram utilitários: bg-surface, text-ink, border-line... */
+@theme {
+  --color-*: initial;
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-sans: "Figtree", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+}
+
+/* inline: os utilitários apontam direto para o token, que muda com data-theme. */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-broto: var(--broto);
+  --color-broto-strong: var(--broto-strong);
+  --color-on-broto: var(--on-broto);
+  --color-broto-soft: var(--broto-soft);
+  --color-terra: var(--terra);
+  --color-terra-soft: var(--terra-soft);
+  --color-sol: var(--sol);
+  --color-on-sol: var(--on-sol);
+  --color-sol-ink: var(--sol-ink);
+  --color-sol-soft: var(--sol-soft);
+  --color-alerta: var(--alerta);
+  --color-alerta-soft: var(--alerta-soft);
+}
 
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
-  
+  :root { color-scheme: light; }
+  [data-theme="dark"] { color-scheme: dark; }
+
   body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased min-h-screen;
     margin: 0;
-    padding: 0;
+    min-height: 100vh;
+    background: var(--surface);
+    color: var(--ink);
+    font: var(--text-body);
+    -webkit-font-smoothing: antialiased;
   }
-  
+
   #root {
     width: 100%;
     min-height: 100vh;
-    margin: 0;
-    padding: 0;
-    text-align: left;
-    border: none;
+  }
+
+  ::selection {
+    background: var(--broto-soft);
+    color: var(--broto-strong);
+  }
+
+  /* Foco de teclado em todo controle: anel broto de 2px com folga na cor do fundo. */
+  a:focus-visible,
+  button:focus-visible,
+  select:focus-visible,
+  input[type="range"]:focus-visible {
+    outline: 2px solid transparent;
+    box-shadow: var(--focus-ring);
+  }
+
+  /* Os ícones de interface seguem o traço dos ícones da marca. */
+  .lucide {
+    stroke-width: 1.75;
   }
 }
 
@@ -30,9 +84,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: var(--line);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--line-strong);
 }

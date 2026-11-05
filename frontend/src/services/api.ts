@@ -1,9 +1,9 @@
 import type { PrevisionInput, DirectPrevisionInput, PrevisionOutput, ClimateData } from '../types/api';
-import type { CrossRecommendationInput, CrossRecommendationOutput, NewsQuery, NewsResponse } from '../types/api';
+import type { CrossRecommendationInput, CrossRecommendationOutput, MarketOutput, NewsQuery, NewsResponse } from '../types/api';
 import { clearToken, getToken } from './session';
 
 // URL base da API. Vazio (padrão) = mesma origem: no `npm run dev` o proxy do
-// Vite encaminha /ai, /auth, /health e /news para http://localhost:8000 (ver vite.config.ts).
+// Vite encaminha /ai, /auth, /health, /news e /market para http://localhost:8000 (ver vite.config.ts).
 // Para usar outro servidor, defina VITE_API_URL em frontend/.env.local.
 const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/+$/, '');
 
@@ -168,6 +168,28 @@ export async function getSupportedCrops(): Promise<{ total_crops: number; crops:
 
   if (!res.ok) {
     throw new Error('Não foi possível obter lista de culturas');
+  }
+
+  return res.json();
+}
+
+/** Preço recebido e produção por hectare de uma cultura (GET /market, dados anuais do IBGE). */
+export async function getCropMarket(
+  query: { crop: string; city?: string; state?: string },
+  signal?: AbortSignal,
+): Promise<MarketOutput> {
+  const params = new URLSearchParams({ crop: query.crop });
+  if (query.city) params.set('city', query.city);
+  if (query.state) params.set('state', query.state);
+
+  const res = await apiFetch(`/market?${params.toString()}`, {
+    method: 'GET',
+    headers: { 'Accept': 'application/json' },
+    signal,
+  });
+
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, 'Erro ao buscar preço e produtividade'));
   }
 
   return res.json();

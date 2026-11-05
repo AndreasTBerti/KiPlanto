@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers.ai_router import router as ai_router
 from routers.auth_router import require_user
 from routers.auth_router import router as auth_router
+from routers.market_router import router as market_router
 from routers.news_router import router as news_router
 
 load_dotenv()
@@ -40,6 +41,7 @@ app.include_router(auth_router)
 # Só com login: estas rotas consultam serviços externos, e a recomendação cruzada gasta créditos de IA.
 app.include_router(ai_router, dependencies=[Depends(require_user)])
 app.include_router(news_router, dependencies=[Depends(require_user)])
+app.include_router(market_router, dependencies=[Depends(require_user)])
 
 @app.get("/")
 def home():
@@ -67,6 +69,11 @@ def home():
                 "method": "GET",
                 "path": "/news",
                 "description": "Notícias de colheita por cidade/UF (crop busca a cultura indicada)",
+            },
+            {
+                "method": "GET",
+                "path": "/market",
+                "description": "Preço recebido e produção por hectare de uma cultura (IBGE)",
             },
         ]
     }

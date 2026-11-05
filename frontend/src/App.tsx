@@ -63,7 +63,7 @@ const Workspace: React.FC<{ user: AuthUser; onLogout: () => void }> = ({ user, o
   }, [user.id]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div className="min-h-screen flex flex-col">
       {/* Navigation Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -81,7 +81,7 @@ const Workspace: React.FC<{ user: AuthUser; onLogout: () => void }> = ({ user, o
           onLogout={onLogout}
         />
 
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-8">
           {activeTab === 'prediction' && (
             <PredictionView onSaveHistory={handleSaveHistory} onOpenNews={handleOpenNews} />
           )}
@@ -151,8 +151,8 @@ export const App: React.FC = () => {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center" role="status" aria-label="Verificando a sessão">
-        <Loader2 className="w-6 h-6 text-emerald-400 animate-spin" aria-hidden="true" />
+      <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Verificando a sessão">
+        <Loader2 className="w-6 h-6 text-broto animate-spin" aria-hidden="true" />
       </div>
     );
   }

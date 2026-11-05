@@ -1,12 +1,26 @@
 <!doctype html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KiPlanto - Plataforma Agroclimática e Recomendação de Safra</title>
     <meta name="description" content="Sistema inteligente de recomendação de culturas agrícolas baseado em dados edafoclimáticos." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" />
+    <script>
+      // Aplica o tema salvo antes da primeira pintura, para não piscar em claro.
+      try {
+        if (localStorage.getItem('kiplanto_theme') === 'dark') {
+          document.documentElement.dataset.theme = 'dark';
+        }
+      } catch {
+        // Sem localStorage: fica no tema claro.
+      }
+    </script>
   </head>
-  <body class="bg-slate-950 text-slate-100">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

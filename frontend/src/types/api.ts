@@ -120,6 +120,39 @@ export const CROP_DICTIONARY: Record<string, { namePt: string; category: CropCat
   watermelon: { namePt: 'Melancia', category: 'Frutas', description: 'Solos leves com alto teor de matéria orgânica e sol pleno.' },
 };
 
+// --- Preço e produtividade (GET /market, dados anuais do IBGE) -------------------
+
+export interface MarketLevel {
+  scope: 'city' | 'state' | 'country';
+  /** Município, UF ou Brasil. */
+  name: string;
+  /** O ano mais recente com produção, nos últimos 3 anos. */
+  year: number;
+  /** kg/ha (frutos/ha se unit for fruto). */
+  yield_per_ha: number;
+  harvested_area_ha: number;
+  /** Toneladas (mil frutos se unit for fruto). */
+  production: number;
+  /** R$/kg (R$/fruto): média do ano, não é cotação do dia. */
+  price?: number | null;
+  /** R$/ha: receita bruta, sem descontar custos. */
+  revenue_per_ha?: number | null;
+}
+
+export interface MarketOutput {
+  crop: string;
+  crop_name: string;
+  /** Produto no IBGE. Vazio: o IBGE não acompanha esta cultura. */
+  product?: string | null;
+  /** O dado é de um produto mais amplo que a cultura (ex.: feijão). */
+  approximate: boolean;
+  unit: 'kg' | 'fruto';
+  /** Município, estado e Brasil, nesta ordem, só os que têm dado. */
+  levels: MarketLevel[];
+  source: string;
+  source_url: string;
+}
+
 // --- Notícias de colheita (GET /news) -------------------------------------------
 
 export type NewsSourceFeed =

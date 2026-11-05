@@ -10,17 +10,11 @@ function fold(text: string): string {
   return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
 
-const ACCENTS = {
-  emerald: 'focus:border-emerald-500',
-  amber: 'focus:border-amber-500',
-};
-
 interface CityPickerProps {
   city: string;
   uf: string;
   /** `city` vem vazio quando a nova UF não tem um município com o nome atual. */
   onChange: (city: string, uf: string) => void;
-  accent?: keyof typeof ACCENTS;
   className?: string;
 }
 
@@ -28,7 +22,7 @@ interface CityPickerProps {
  * UF + município da lista oficial do IBGE. O texto digitado só filtra a lista:
  * o valor só muda ao escolher uma opção, então não há como enviar cidade inexistente.
  */
-export const CityPicker: React.FC<CityPickerProps> = ({ city, uf, onChange, accent = 'emerald', className = '' }) => {
+export const CityPicker: React.FC<CityPickerProps> = ({ city, uf, onChange, className = '' }) => {
   const listId = useId();
   const [query, setQuery] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -80,8 +74,6 @@ export const CityPicker: React.FC<CityPickerProps> = ({ city, uf, onChange, acce
     }
   };
 
-  const focusClass = ACCENTS[accent];
-
   return (
     <div className={`flex gap-2 ${className}`}>
       <select
@@ -92,7 +84,7 @@ export const CityPicker: React.FC<CityPickerProps> = ({ city, uf, onChange, acce
           close();
         }}
         aria-label="UF do município"
-        className={`bg-slate-950 border border-slate-800 rounded-lg px-2 py-2 text-sm text-white focus:outline-hidden ${focusClass} transition-colors cursor-pointer`}
+        className="kp-input w-auto shrink-0"
       >
         {BR_UFS.map((state) => (
           <option key={state.uf} value={state.uf} title={state.name}>
@@ -102,7 +94,7 @@ export const CityPicker: React.FC<CityPickerProps> = ({ city, uf, onChange, acce
       </select>
 
       <div className="relative flex-1 min-w-0">
-        <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
+        <MapPin className="w-5 h-5 text-terra absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
         <input
           type="text"
           role="combobox"
@@ -128,9 +120,9 @@ export const CityPicker: React.FC<CityPickerProps> = ({ city, uf, onChange, acce
           }}
           onBlur={close}
           onKeyDown={handleKeyDown}
-          className={`w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-8 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-hidden ${focusClass} transition-colors`}
+          className="kp-input kp-input-with-icon pr-9"
         />
-        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
+        <ChevronDown className="w-5 h-5 text-ink-muted absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
 
         {open && (
           <ul
@@ -138,7 +130,8 @@ export const CityPicker: React.FC<CityPickerProps> = ({ city, uf, onChange, acce
             ref={listRef}
             role="listbox"
             aria-label={`Municípios de ${uf}`}
-            className="absolute z-30 mt-1 w-full min-w-56 max-h-60 overflow-y-auto bg-slate-900 border border-slate-700 rounded-lg shadow-xl py-1 text-sm"
+            className="absolute z-30 mt-1 w-full min-w-56 max-h-60 overflow-y-auto bg-surface-raised border border-line-strong rounded-md py-1 text-sm"
+            style={{ boxShadow: 'var(--shadow-card)' }}
           >
             {options.map((name, index) => (
               <li
@@ -152,15 +145,15 @@ export const CityPicker: React.FC<CityPickerProps> = ({ city, uf, onChange, acce
                   pick(name);
                 }}
                 onMouseEnter={() => setActiveIndex(index)}
-                className={`px-3 py-1.5 cursor-pointer ${
-                  index === activeIndex ? 'bg-slate-700 text-white' : 'text-slate-300'
+                className={`px-3 py-2 cursor-pointer ${
+                  index === activeIndex ? 'bg-broto-soft text-broto-strong' : 'text-ink'
                 } ${name === city ? 'font-semibold' : ''}`}
               >
                 {name}
               </li>
             ))}
             {options.length === 0 && (
-              <li className="px-3 py-2 text-xs text-slate-400">Nenhum município de {uf} com esse nome.</li>
+              <li className="px-3 py-2 text-ink-muted">Nenhum município de {uf} com esse nome.</li>
             )}
           </ul>
         )}

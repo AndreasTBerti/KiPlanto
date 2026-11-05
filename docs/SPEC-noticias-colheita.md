@@ -365,7 +365,7 @@ Os ícones `Newspaper`, `ExternalLink`, `ArrowLeft`, `CalendarDays` e `MapPin` e
  Fontes: 3 de 4 responderam (Canal Rural indisponível)
 ```
 
-- Grid `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`, mesmo visual dos outros cards (`bg-slate-900/80 border-slate-800 rounded-xl`), destaque em **âmbar** para diferenciar das telas de modelo (esmeralda).
+- Grid `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`, mesmo visual dos outros cards (`bg-surface-raised border-line rounded-lg`), com as etiquetas do design system: `kp-chip-terra` para o local e `kp-chip-broto` para a cultura.
 - O card inteiro é um `<button>` acessível que abre o artigo. Título limitado a 2 linhas (`line-clamp-2`), resumo a 3.
 - Badge de localização: `city` mostra o nome da cidade, `state` mostra a UF, `inferred` mostra "Região".
 - Busca inicial automática com `Tupã`/`SP`, o mesmo default da tela de clima.
@@ -410,7 +410,7 @@ Depois que `PredictionView` mostra o resultado, exibir um card compacto **"Colhe
 
 Como ficou: ao sair a análise, o card chama `GET /news?city&state&crop=<cultura recomendada>` com a cidade e a UF resolvidas pela recomendação e informa se há notícias da cultura na região. Sem nenhuma, avisa e mostra o mais próximo, com o badge "Outras regiões". A aba de notícias, aberta pela sidebar, usa a região e a cultura da última análise do histórico. O `App` guarda um `newsIntent` ({ query, response, articleId }) e o `NewsView` abre direto no artigo, **reaproveitando a resposta do card, sem nova requisição**. Na aba de notícias, o select de cultura faz o mesmo manualmente. O município é escolhido na lista do IBGE (`frontend/src/constants/municipios.json`, gerada por `scripts/gerar_municipios.py`).
 
-**Atualização (recomendação cruzada):** o card deixou de ser compacto e passou para o topo da coluna de resultado, com a notícia principal em destaque (imagem, título e resumo). Ele agora chama `POST /ai/cross-recommendation`, que busca as notícias de até 3 culturas candidatas e aplica a regra de `services/cross_recommendation.py`, descrita no README. Com isso, o texto acima sobre `GET /news` no card e as "3 manchetes" ficam substituídos; o restante continua valendo.
+**Atualização (recomendação cruzada):** o card deixou de ser compacto e passou para o topo da coluna de resultado, com a notícia principal em destaque (imagem, título e resumo). Ele agora chama `POST /ai/cross-recommendation`, que busca as notícias de até 3 culturas candidatas e aplica a regra de `services/cross_recommendation.py`, descrita no README. Com isso, o texto acima sobre `GET /news` no card e as "3 manchetes" ficam substituídos; o restante continua valendo. Depois, o formulário passou a sumir ao gerar a análise: no desktop, o card de notícias fica ao lado do resultado e do card de preço e produtividade, e no celular, abaixo deles.
 
 ## 7. Testes
 

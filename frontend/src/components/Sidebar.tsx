@@ -1,13 +1,7 @@
 import React from 'react';
-import {
-  Sprout,
-  SlidersHorizontal,
-  CloudSun,
-  Newspaper,
-  BookOpen,
-  History,
-  X
-} from 'lucide-react';
+import { SlidersHorizontal, Newspaper, BookOpen, History, X } from 'lucide-react';
+import { Logo } from './ui/Logo';
+import { CulturaIcon, UmidadeIcon } from './ui/icons';
 
 export type NavTab = 'prediction' | 'simulation' | 'climate' | 'news' | 'catalog' | 'history';
 
@@ -18,82 +12,60 @@ interface SidebarProps {
   onToggleMobile: () => void;
 }
 
+const NAV_ITEMS: { id: NavTab; label: string; icon: React.ElementType }[] = [
+  { id: 'prediction', label: 'Recomendação de safra', icon: CulturaIcon },
+  { id: 'simulation', label: 'Simulação direta', icon: SlidersHorizontal },
+  { id: 'climate', label: 'Consulta climática', icon: UmidadeIcon },
+  { id: 'news', label: 'Notícias da colheita', icon: Newspaper },
+  { id: 'catalog', label: 'Catálogo de culturas', icon: BookOpen },
+  { id: 'history', label: 'Histórico de análises', icon: History },
+];
+
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onSelectTab,
   isOpenMobile,
   onToggleMobile,
-}) => {
-  const navItems = [
-    { id: 'prediction' as NavTab, label: 'Recomendação de Safra', icon: Sprout },
-    { id: 'simulation' as NavTab, label: 'Simulação Direta', icon: SlidersHorizontal },
-    { id: 'climate' as NavTab, label: 'Consulta Climática', icon: CloudSun },
-    { id: 'news' as NavTab, label: 'Notícias da Colheita', icon: Newspaper },
-    { id: 'catalog' as NavTab, label: 'Catálogo de Culturas', icon: BookOpen },
-    { id: 'history' as NavTab, label: 'Histórico de Análises', icon: History },
-  ];
+}) => (
+  <>
+    {/* Mobile Backdrop */}
+    {isOpenMobile && (
+      <div onClick={onToggleMobile} className="kp-backdrop fixed inset-0 z-40 lg:hidden" />
+    )}
 
-  return (
-    <>
-      {/* Mobile Backdrop */}
-      {isOpenMobile && (
-        <div
-          onClick={onToggleMobile}
-          className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-40 lg:hidden"
-        />
-      )}
+    {/* Sidebar Container */}
+    <aside
+      className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-surface-raised border-r border-line flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+        isOpenMobile ? 'translate-x-0' : '-translate-x-full'
+      }`}
+    >
+      <div className="h-16 flex items-center justify-between pl-5 pr-3 border-b border-line">
+        <Logo className="h-8 w-auto" />
+        <button onClick={onToggleMobile} className="kp-icon-btn lg:hidden" aria-label="Fechar menu">
+          <X className="kp-icon" aria-hidden="true" />
+        </button>
+      </div>
 
-      {/* Sidebar Container */}
-      <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 ${
-          isOpenMobile ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-lg bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <Sprout className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-base font-semibold tracking-tight text-white block">KiPlanto</span>
-              <span className="text-xs text-slate-400 font-mono">Recomendação Agrícola</span>
-            </div>
-          </div>
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
           <button
-            onClick={onToggleMobile}
-            className="lg:hidden text-slate-400 hover:text-white p-1 rounded-md"
-            aria-label="Fechar menu"
+            key={id}
+            aria-current={activeTab === id ? 'page' : undefined}
+            onClick={() => {
+              onSelectTab(id);
+              if (isOpenMobile) onToggleMobile();
+            }}
+            className="kp-nav-item"
           >
-            <X className="w-5 h-5" />
+            <Icon className="kp-icon" aria-hidden="true" />
+            <span className="truncate">{label}</span>
           </button>
-        </div>
+        ))}
+      </nav>
 
-        {/* Navigation Items */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  onSelectTab(item.id);
-                  if (isOpenMobile) onToggleMobile();
-                }}
-                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                  isActive
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white border border-transparent'
-                }`}
-              >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
-                <span className="truncate">{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </aside>
-    </>
-  );
-};
+      <p className="px-5 py-4 border-t border-line text-[13px] leading-[18px] text-ink-muted">
+        Dados do solo, a cultura certa.
+      </p>
+    </aside>
+  </>
+);

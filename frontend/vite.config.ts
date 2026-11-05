@@ -15,6 +15,7 @@ export default defineConfig({
       '/auth': 'http://localhost:8000',
       '/health': 'http://localhost:8000',
       '/news': 'http://localhost:8000',
+      '/market': 'http://localhost:8000',
     }
   }
 })

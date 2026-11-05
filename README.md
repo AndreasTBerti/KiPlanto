@@ -19,6 +19,7 @@ KiPlanto/
 ├── routers/
 │   ├── auth_router.py          # /auth (cadastro, login, logout) e a dependência require_user
 │   ├── ai_router.py            # /ai/prevision, /ai/prevision/direct, /ai/cross-recommendation, /ai/climate, /ai/crops
+│   ├── market_router.py        # /market (preço e produtividade, dados do IBGE)
 │   └── news_router.py          # /news (notícias de colheita)
 ├── schemas/                    # Schemas Pydantic (validação de entrada e saída)
 ├── services/
@@ -78,7 +79,7 @@ npm install
 npm run dev               # http://localhost:3000
 ```
 
-Em desenvolvimento o frontend chama a API pela mesma origem e o proxy do Vite encaminha `/ai`, `/health` e `/news` para `http://localhost:8000`. Para apontar para outro servidor, crie `frontend/.env.local` com `VITE_API_URL=http://servidor:porta` (veja `frontend/.env.example`) e libere a origem do front em `CORS_ALLOW_ORIGINS` no `.env` do backend.
+Em desenvolvimento o frontend chama a API pela mesma origem e o proxy do Vite encaminha `/ai`, `/auth`, `/health`, `/news` e `/market` para `http://localhost:8000`. Para apontar para outro servidor, crie `frontend/.env.local` com `VITE_API_URL=http://servidor:porta` (veja `frontend/.env.example`) e libere a origem do front em `CORS_ALLOW_ORIGINS` no `.env` do backend.
 
 ### 3. Testes e lint
 
@@ -129,6 +130,7 @@ A resposta de `/ai/prevision` traz em `features` os valores exatos entregues ao 
 | `GET` | `/ai/climate/{city}?state=UF` | Condições atuais, médias de 7 dias e chuva média mensal | 404 · 422 · 502 |
 | `GET` | `/ai/crops` | As 22 culturas que o modelo conhece | 500 se o modelo não carregar |
 | `GET` | `/news?city=&state=&days=&limit=&crop=` | Notícias de colheita da cidade/estado, ranqueadas por relevância. `city` (2–80 caracteres), `state` (UF, opcional), `days` (1–180, padrão 30), `limit` (1–30, padrão 10), `crop` (classe de `/ai/crops`, opcional: busca a cultura indicada, primeiro na região e depois em outras regiões, com `location_match: "outside"`) | 404 cidade não encontrada · 422 parâmetro inválido · 502 todas as fontes ou a geocodificação falharam |
+| `GET` | `/market?crop=&city=&state=` | Preço recebido, produção por hectare, receita bruta, área colhida e produção total de uma cultura, no município, no estado e no Brasil. Dados anuais do IBGE (PAM, tabela 5457): o preço é o valor da produção dividido pela quantidade, não a cotação do dia. `crop` (classe de `/ai/crops`), `city` e `state` opcionais. Grão-de-bico, lentilha, guandu e romã não têm dado no IBGE, e as variedades de feijão usam o dado geral de feijão | 422 parâmetro inválido · 502 IBGE indisponível |
 | `GET` | `/docs`, `/redoc`, `/openapi.json` | Documentação gerada pelo FastAPI | — |
 
 **`state` (UF):** resolve cidades com o mesmo nome em estados diferentes (ex.: Cascavel/PR e Cascavel/CE). Com UF, o nome da cidade precisa bater exatamente (acentos e maiúsculas não importam); sem UF, vale o resultado mais relevante do geocodificador. As respostas trazem `city`, `state` e `uf` resolvidos.
@@ -150,7 +152,7 @@ Mantidos nas respostas por compatibilidade. Serão removidos numa versão futura
 
 ## Contas e login
 
-As rotas de `/ai` e `/news` exigem o cabeçalho `Authorization: Bearer <token>`; sem ele, respondem 401. O token vem de `/auth/register` ou `/auth/login` e vale por 7 dias. No Swagger (`/docs`), use o botão **Authorize**.
+As rotas de `/ai`, `/news` e `/market` exigem o cabeçalho `Authorization: Bearer <token>`; sem ele, respondem 401. O token vem de `/auth/register` ou `/auth/login` e vale por 7 dias. No Swagger (`/docs`), use o botão **Authorize**.
 
 As contas ficam em SQLite, em `data/kiplanto.db` (fora do git). A senha é guardada só como hash scrypt com sal, e o banco guarda só o hash do token da sessão. No navegador, o token fica no `localStorage`, e o histórico de análises é separado por conta, mas continua sendo guardado só naquele navegador.
 
@@ -184,7 +186,7 @@ Frontend (`frontend/.env.local`):
 
 ## Módulos do Frontend
 
-- **Recomendação de Safra**: UF e município escolhidos na lista oficial do IBGE, nutrientes N-P-K e recomendação com probabilidades. Mostra as entradas exatas do modelo e, à parte, as condições atuais do clima. O pH é registrado no histórico, mas não é usado pelo modelo. Abaixo do resultado, o card **"{Cultura} na região de {cidade}"** busca notícias da cultura indicada naquela região e traz as 3 primeiras; quando não há nada sobre a cultura na região, o card avisa e mostra o mais próximo. Clicar numa manchete abre o artigo na aba de notícias.
+- **Recomendação de Safra**: UF e município escolhidos na lista oficial do IBGE, nutrientes N-P-K e recomendação com probabilidades. Ao gerar a análise, o formulário dá lugar aos resultados, e **"Fazer outra análise"** traz o formulário de volta com os mesmos valores. A tela mostra as entradas exatas do modelo e, à parte, as condições atuais do clima. O pH é registrado no histórico, mas não é usado pelo modelo. Abaixo da predição, o card **"Preço e produtividade"** traz os dados do IBGE para a cultura indicada, comparando município, estado e Brasil. Ao lado, o card de notícias busca a cultura indicada naquela região; quando não há nada sobre ela na região, o card avisa e mostra o mais próximo. Clicar numa manchete abre o artigo na aba de notícias.
 - **Notícias da Colheita**: abre com a região e a cultura da última análise (sem análise, convida a fazer uma); os filtros de município, período e cultura permitem outra busca. Cada notícia vira um card e abre em formato de artigo (manchete, fonte, data, imagem, resumo, motivo da seleção e link para a matéria original).
 - **Simulação Direta**: ajuste das 6 variáveis do modelo (chuva em mm/mês) com recálculo em tempo real.
 - **Consulta Climática**: condições atuais, médias e total previstos para 7 dias e chuva média mensal dos últimos 12 meses.

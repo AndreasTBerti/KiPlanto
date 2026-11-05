@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Search, WifiOff } from 'lucide-react';
+import { CheckCircle2, Search } from 'lucide-react';
 import { CROP_DICTIONARY } from '../../types/api';
 import type { CropCategory } from '../../types/api';
 import { getSupportedCrops } from '../../services/api';
+import { Notice } from '../ui/Notice';
 
 type CategoryFilter = 'Todas' | CropCategory;
 
@@ -60,31 +61,26 @@ export const CropsCatalogView: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Filters & Search Row */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row gap-4 justify-between">
-        {/* Search */}
+      <div className="kp-card kp-card-compact flex flex-col md:flex-row md:items-center gap-3 justify-between">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-5 h-5 text-ink-muted absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar cultura..."
+            placeholder="Buscar cultura"
             aria-label="Buscar cultura"
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-hidden focus:border-emerald-500 transition-colors"
+            className="kp-input kp-input-with-icon"
           />
         </div>
 
-        {/* Category Tabs */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por categoria">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-                selectedCategory === cat
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-semibold'
-                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white'
-              }`}
+              aria-pressed={selectedCategory === cat}
+              className="kp-filter"
             >
               {cat}
             </button>
@@ -94,77 +90,57 @@ export const CropsCatalogView: React.FC = () => {
 
       {/* Consistency with the model */}
       {modelCheck.status === 'loading' && (
-        <p className="text-xs text-slate-400">Conferindo o catálogo com as culturas do modelo...</p>
+        <p className="text-sm text-ink-muted">Conferindo o catálogo com as culturas do modelo.</p>
       )}
 
       {modelCheck.status === 'error' && (
-        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 flex items-center gap-2">
-          <WifiOff className="w-4 h-4 shrink-0" />
-          <span>Não foi possível conferir com o modelo (API indisponível). Exibindo o catálogo local.</span>
-        </div>
+        <Notice tone="neutral">Não foi possível conferir com o modelo (API indisponível). Exibindo o catálogo local.</Notice>
       )}
 
       {modelCheck.status === 'ok' && missingInCatalog.length === 0 && missingInModel.length === 0 && (
-        <p className="text-xs text-emerald-400 flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5" />
+        <p className="text-sm text-broto flex items-center gap-1.5">
+          <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
           <span>Catálogo confere com as {modelCheck.crops.length} culturas do modelo.</span>
         </p>
       )}
 
       {(missingInCatalog.length > 0 || missingInModel.length > 0) && (
-        <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/40 text-amber-200 text-xs flex items-start gap-3">
-          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <span className="font-semibold block">Catálogo e modelo divergem</span>
-            {missingInCatalog.length > 0 && (
-              <p>
-                O modelo recomenda culturas sem descrição no catálogo:{' '}
-                <span className="font-mono">{missingInCatalog.join(', ')}</span>
-              </p>
-            )}
-            {missingInModel.length > 0 && (
-              <p>
-                Culturas do catálogo que o modelo não conhece:{' '}
-                <span className="font-mono">{missingInModel.join(', ')}</span>
-              </p>
-            )}
-          </div>
-        </div>
+        <Notice tone="warn" title="Catálogo e modelo divergem">
+          {missingInCatalog.length > 0 && (
+            <p>
+              O modelo recomenda culturas sem descrição no catálogo:{' '}
+              <span className="font-mono">{missingInCatalog.join(', ')}</span>
+            </p>
+          )}
+          {missingInModel.length > 0 && (
+            <p>
+              Culturas do catálogo que o modelo não conhece:{' '}
+              <span className="font-mono">{missingInModel.join(', ')}</span>
+            </p>
+          )}
+        </Notice>
       )}
 
       {/* Crops Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredCrops.map(([key, info]) => (
-          <div
-            key={key}
-            className="bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-xl p-4 transition-colors space-y-2 flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-base font-bold text-white tracking-tight">
-                  {info.namePt}
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800 font-mono">
-                  {key}
-                </span>
-              </div>
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-500/20">
-                  {info.category}
-                </span>
+      {filteredCrops.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredCrops.map(([key, info]) => (
+            <div key={key} className="kp-card kp-card-compact space-y-2">
+              <h2 className="font-display text-xl font-bold leading-7 tracking-tight text-ink">{info.namePt}</h2>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="kp-chip kp-chip-broto">{info.category}</span>
+                <span className="kp-chip font-mono font-medium">{key}</span>
                 {modelCrops && !modelCrops.has(key) && (
-                  <span className="text-[11px] px-2 py-0.5 rounded bg-amber-950/40 text-amber-300 border border-amber-500/30">
-                    fora do modelo
-                  </span>
+                  <span className="kp-chip kp-chip-terra">Fora do modelo</span>
                 )}
               </div>
-              <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                {info.description}
-              </p>
+              <p className="text-sm text-ink-muted">{info.description}</p>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="kp-empty">Nenhuma cultura encontrada. Tente outro nome ou categoria.</div>
+      )}
     </div>
   );
 };
