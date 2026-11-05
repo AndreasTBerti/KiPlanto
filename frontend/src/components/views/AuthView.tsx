@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { AuthUser } from '../../types/api';
 import { login, register } from '../../services/auth';
 import { Button } from '../ui/Button';
-import { CoverArt } from '../ui/CoverArt';
+import { DayNightCoverArt } from '../ui/CoverArt';
 import { Logo } from '../ui/Logo';
 import { Notice } from '../ui/Notice';
 import { ThemeToggle } from '../ui/ThemeToggle';
@@ -60,7 +60,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ notice, onAuthenticated }) =
             Informe as condições do talhão e veja a melhor aposta para plantar, com a pontuação e os fatores que levaram à escolha.
           </p>
         </div>
-        <CoverArt className="block flex-1 min-h-0 w-full overflow-visible" />
+        <DayNightCoverArt className="block flex-1 min-h-0 w-full overflow-visible" />
       </section>
 
       {/* Formulário */}

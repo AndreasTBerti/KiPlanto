@@ -96,6 +96,38 @@
 .kp-crop-hero .kp-badge-alta { background: var(--on-broto); color: var(--broto-strong); }
 .kp-crop-featured .kp-factors { padding-top: 0; border-top: 0; }
 
+/* Capa da tela de entrada: a roda de dia e noite. Os gestos pontuais da troca ficam em CoverArt.tsx. */
+.kp-cover-wheel { transform-origin: 424px 252px; transition: transform 850ms cubic-bezier(.5, 0, .15, 1.08); }
+.kp-cover-moon { fill: var(--line-strong); }
+[data-theme="dark"] .kp-cover-moon { fill: var(--ink); }
+.kp-cover-halo { fill: var(--sol); transform-origin: 424px 72px; }
+[data-theme="dark"] .kp-cover-halo { fill: var(--ink); }
+
+.kp-cover-stem { transform-origin: 104px 224px; }
+.kp-cover-leaf-rest, .kp-cover-leaf-sway, .kp-cover-leaf-breeze { transform-origin: 120px 168px; }
+.kp-cover-leaf-rest { transition: transform 900ms cubic-bezier(.34, 1.4, .64, 1); }
+[data-theme="dark"] .kp-cover-leaf-rest { transform: rotate(5deg); }
+.kp-cover-leaf-breeze { animation: kp-breeze 6s ease-in-out infinite; }
+.kp-cover-seeds circle { transform-box: fill-box; transform-origin: center; }
+
+.kp-cover-star { fill: var(--sol); opacity: 0; transform: scale(.3); transform-box: fill-box; transform-origin: center; transition: opacity 200ms ease-in, transform 200ms ease-in; }
+[data-theme="dark"] .kp-cover-star { opacity: 1; transform: none; transition: opacity 300ms ease-out, transform 450ms cubic-bezier(.34, 1.56, .64, 1); transition-delay: calc(280ms + var(--i) * 55ms); }
+[data-theme="dark"] .kp-cover-star path { animation: kp-twinkle 3.4s ease-in-out infinite; animation-delay: calc(var(--i) * -.7s); }
+
+@keyframes kp-breeze { 0%, 100% { transform: rotate(-.7deg); } 50% { transform: rotate(.9deg); } }
+@keyframes kp-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@keyframes kp-fade-in { from { opacity: 0; } }
+
+/* Só durante a troca de tema na tela de entrada: as cores acompanham o céu em vez de saltar. */
+.kp-theme-fading main,
+.kp-theme-fading main *:not(.kp-cover-wheel, .kp-cover-leaf-rest, .kp-cover-star, .kp-cover-seeds circle) { transition: background-color 500ms ease, border-color 500ms ease, color 500ms ease, fill 500ms ease, stroke 500ms ease; }
+.kp-theme-fading .kp-logo-color, .kp-theme-fading .kp-logo-reverse { animation: kp-fade-in 500ms ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kp-cover-wheel, .kp-cover-leaf-rest, .kp-cover-star, [data-theme="dark"] .kp-cover-star { transition: none; }
+  .kp-cover-leaf-breeze, [data-theme="dark"] .kp-cover-star path { animation: none; }
+}
+
 /* --- Extensões da aplicação --------------------------------------------- */
 
 /* Cartões: borda line, sem sombra. Só o cartão de resultado tem shadow-card. */
